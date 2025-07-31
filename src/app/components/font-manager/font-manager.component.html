@@ -1,0 +1,356 @@
+<div class="font-manager">
+  <!-- Header -->
+  <div class="font-manager-header">
+    <h3>Font Management</h3>
+    <div class="tab-navigation">
+      <button
+        class="tab-button"
+        [class.active]="activeTab === 'browse'"
+        (click)="activeTab = 'browse'"
+      >
+        Browse Fonts
+      </button>
+      <button
+        class="tab-button"
+        [class.active]="activeTab === 'upload'"
+        (click)="activeTab = 'upload'"
+      >
+        Upload Custom
+      </button>
+      <button
+        class="tab-button"
+        [class.active]="activeTab === 'pairings'"
+        (click)="activeTab = 'pairings'"
+      >
+        Font Pairings
+      </button>
+    </div>
+  </div>
+
+  <!-- Browse Fonts Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'browse'">
+    <!-- Search and Filters -->
+    <div class="search-filters">
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="Search fonts..."
+          (input)="onSearchInput($event)"
+          class="search-input"
+        />
+        <span class="search-icon">🔍</span>
+      </div>
+
+      <div class="category-filters">
+        <button
+          *ngFor="let category of fontCategories"
+          class="category-button"
+          [class.active]="selectedCategory === category.value"
+          (click)="selectCategory(category.value)"
+        >
+          <span class="category-icon">{{ category.icon }}</span>
+          <span class="category-label">{{ category.label }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Font Preview Panel -->
+    <div class="font-preview-panel" *ngIf="previewFont">
+      <div class="preview-header">
+        <h4>{{ previewFont.displayName }}</h4>
+        <div class="preview-controls">
+          <select [(ngModel)]="previewSize" class="preview-size">
+            <option value="14px">14px</option>
+            <option value="16px">16px</option>
+            <option value="18px">18px</option>
+            <option value="24px">24px</option>
+            <option value="32px">32px</option>
+            <option value="48px">48px</option>
+          </select>
+          <select [(ngModel)]="previewWeight" class="preview-weight">
+            <option *ngFor="let weight of fontWeights" [value]="weight.value">
+              {{ weight.label }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="preview-text" [ngStyle]="getFontPreviewStyle(previewFont)">
+        {{ getPreviewTextForCategory(previewFont.category) }}
+      </div>
+
+      <div class="preview-actions">
+        <button
+          class="action-button primary"
+          (click)="selectFont(previewFont, 'heading')"
+        >
+          Use for Headings
+        </button>
+        <button
+          class="action-button secondary"
+          (click)="selectFont(previewFont, 'body')"
+        >
+          Use for Body Text
+        </button>
+        <button
+          class="action-button tertiary"
+          (click)="generatePairingSuggestions(previewFont)"
+        >
+          Find Pairings
+        </button>
+      </div>
+    </div>
+
+    <!-- Font List -->
+    <div class="font-list">
+      <div class="font-list-header">
+        <span class="font-count">{{ filteredFonts.length }} fonts</span>
+      </div>
+
+      <div class="font-grid">
+        <div
+          *ngFor="let font of filteredFonts"
+          class="font-card"
+          [class.selected]="previewFont?.id === font.id"
+          (click)="previewFontFamily(font)"
+        >
+          <div class="font-card-header">
+            <div class="font-info">
+              <span class="font-name">{{ font.displayName }}</span>
+              <div class="font-meta">
+                <span class="font-source">{{
+                  getFontSourceIcon(font.source)
+                }}</span>
+                <span class="font-category">{{
+                  getFontCategoryIcon(font.category)
+                }}</span>
+                <span class="font-variants"
+                  >{{ font.variants.length }} variants</span
+                >
+              </div>
+            </div>
+            <div class="font-status">
+              <span
+                class="loading-indicator"
+                [class.loaded]="isFontLoaded(font)"
+                [title]="
+                  isFontLoaded(font) ? 'Font loaded' : 'Click to load font'
+                "
+              >
+                {{ isFontLoaded(font) ? "✓" : "○" }}
+              </span>
+            </div>
+          </div>
+
+          <div class="font-preview" [ngStyle]="getFontPreviewStyle(font)">
+            {{ getPreviewTextForCategory(font.category) }}
+          </div>
+
+          <div class="font-actions" *ngIf="font.isCustom">
+            <button
+              class="delete-button"
+              (click)="deleteCustomFont(font); $event.stopPropagation()"
+              title="Delete custom font"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Custom Font Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'upload'">
+    <div class="upload-form">
+      <h4>Upload Custom Font</h4>
+
+      <div class="form-group">
+        <label for="fontName">Font Name</label>
+        <input
+          id="fontName"
+          type="text"
+          [(ngModel)]="uploadForm.name"
+          placeholder="Enter font name"
+          class="form-input"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="fontFiles">Font Files</label>
+        <input
+          id="fontFiles"
+          type="file"
+          multiple
+          accept=".woff2,.woff,.ttf,.otf"
+          (change)="onFileSelected($event)"
+          class="form-input file-input"
+        />
+        <div class="file-help">
+          Supported formats: WOFF2, WOFF, TTF, OTF (Max 5MB per file)
+        </div>
+      </div>
+
+      <!-- Font Variants Configuration -->
+      <div class="form-group" *ngIf="uploadForm.files.length > 0">
+        <label>Font Variants</label>
+        <div class="variants-config">
+          <div
+            *ngFor="let file of uploadForm.files; let i = index"
+            class="variant-config"
+          >
+            <span class="file-name">{{ file.name }}</span>
+            <select
+              [(ngModel)]="uploadForm.variants[i].weight"
+              class="variant-weight"
+            >
+              <option value="100">Thin</option>
+              <option value="200">Extra Light</option>
+              <option value="300">Light</option>
+              <option value="400">Regular</option>
+              <option value="500">Medium</option>
+              <option value="600">Semi Bold</option>
+              <option value="700">Bold</option>
+              <option value="800">Extra Bold</option>
+              <option value="900">Black</option>
+            </select>
+            <select
+              [(ngModel)]="uploadForm.variants[i].style"
+              class="variant-style"
+            >
+              <option value="normal">Normal</option>
+              <option value="italic">Italic</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload Errors -->
+      <div class="upload-errors" *ngIf="uploadErrors.length > 0">
+        <div class="error-message" *ngFor="let error of uploadErrors">
+          {{ error }}
+        </div>
+      </div>
+
+      <!-- Upload Actions -->
+      <div class="form-actions">
+        <button
+          class="action-button primary"
+          [disabled]="
+            isUploading ||
+            !uploadForm.name.trim() ||
+            uploadForm.files.length === 0
+          "
+          (click)="uploadCustomFont()"
+        >
+          <span *ngIf="!isUploading">Upload Font</span>
+          <span *ngIf="isUploading">Uploading...</span>
+        </button>
+        <button
+          class="action-button secondary"
+          (click)="resetUploadForm()"
+          [disabled]="isUploading"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Custom Fonts List -->
+    <div class="custom-fonts-section" *ngIf="customFonts.length > 0">
+      <h4>Your Custom Fonts</h4>
+      <div class="custom-fonts-list">
+        <div *ngFor="let font of customFonts" class="custom-font-item">
+          <div class="font-info">
+            <span class="font-name">{{ font.displayName }}</span>
+            <span class="font-variants"
+              >{{ font.variants.length }} variants</span
+            >
+          </div>
+          <div class="font-preview" [ngStyle]="getFontPreviewStyle(font)">
+            {{ getPreviewTextForCategory(font.category) }}
+          </div>
+          <div class="font-actions">
+            <button
+              class="action-button small"
+              (click)="selectFont(font, 'heading')"
+            >
+              Heading
+            </button>
+            <button
+              class="action-button small"
+              (click)="selectFont(font, 'body')"
+            >
+              Body
+            </button>
+            <button class="delete-button" (click)="deleteCustomFont(font)">
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Font Pairings Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'pairings'">
+    <div class="pairings-section">
+      <h4>Recommended Font Pairings</h4>
+      <div class="pairings-grid">
+        <div *ngFor="let pairing of fontPairings" class="pairing-card">
+          <div class="pairing-header">
+            <h5>{{ pairing.name }}</h5>
+            <div class="pairing-rating">
+              <span class="rating-stars">
+                <span
+                  *ngFor="let star of [1, 2, 3, 4, 5]"
+                  class="star"
+                  [class.filled]="star <= pairing.rating"
+                >
+                  ★
+                </span>
+              </span>
+              <span class="rating-value">{{ pairing.rating }}</span>
+            </div>
+          </div>
+
+          <div class="pairing-description">
+            {{ pairing.description }}
+          </div>
+
+          <div class="pairing-preview">
+            <div
+              class="heading-preview"
+              [ngStyle]="getFontPreviewStyle(pairing.headingFont)"
+            >
+              {{ pairing.headingFont.displayName }} Heading
+            </div>
+            <div
+              class="body-preview"
+              [ngStyle]="getFontPreviewStyle(pairing.bodyFont)"
+            >
+              {{ pairing.bodyFont.displayName }} body text provides excellent
+              readability and complements the heading font perfectly.
+            </div>
+          </div>
+
+          <div class="pairing-actions">
+            <button
+              class="action-button primary"
+              (click)="applyFontPairing(pairing)"
+            >
+              Apply Pairing
+            </button>
+            <div class="pairing-fonts">
+              <span class="font-tag">{{
+                pairing.headingFont.displayName
+              }}</span>
+              <span class="plus">+</span>
+              <span class="font-tag">{{ pairing.bodyFont.displayName }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

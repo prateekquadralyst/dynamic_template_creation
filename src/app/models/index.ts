@@ -5,3 +5,4 @@ export * from './template.interface';
 export * from './asset.interface';
 export * from './collaboration.interface';
 export * from './export.interface';
+export * from './font.interface';

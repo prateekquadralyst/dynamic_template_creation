@@ -459,3 +459,94 @@
 .panel-content::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Font Manager Integration */
+.font-manager-container {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.font-manager-container.show {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.font-manager-container app-font-manager {
+  background: white;
+  border-radius: 8px;
+  max-width: 90vw;
+  max-height: 90vh;
+  width: 1000px;
+  height: 700px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.current-fonts {
+  margin-bottom: 1.5rem;
+}
+
+.current-font-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+}
+
+.current-font-display .font-name {
+  font-weight: 500;
+  color: #495057;
+}
+
+.current-font-display .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.legacy-font-selectors {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.legacy-font-selectors.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Additional responsive styles for font manager */
+@media (max-width: 768px) {
+  .font-manager-container {
+    padding: 1rem;
+  }
+
+  .font-manager-container app-font-manager {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+  }
+
+  .current-font-display {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .current-font-display .btn {
+    align-self: flex-end;
+  }
+}

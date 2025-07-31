@@ -3,8 +3,10 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Subject, takeUntil, debounceTime } from "rxjs";
 import { GlobalStylingService } from "../../services/global-styling.service";
+import { FontManagementService } from "../../services/font-management.service";
 import { CssValidationService, CSSValidationError } from "../../services/css-validation.service";
 import { CssEditorComponent } from "../css-editor/css-editor.component";
+import { FontManagerComponent } from "../font-manager/font-manager.component";
 import {
   GlobalStyles,
   TypographySettings,
@@ -12,11 +14,12 @@ import {
   SpacingSettings,
   EffectSettings,
 } from "../../models/project.interface";
+import { FontFamily } from "../../models/font.interface";
 
 @Component({
   selector: "app-global-styling-controls",
   standalone: true,
-  imports: [CommonModule, FormsModule, CssEditorComponent],
+  imports: [CommonModule, FormsModule, CssEditorComponent, FontManagerComponent],
   templateUrl: "./global-styling-controls.component.html",
   styleUrls: ["./global-styling-controls.component.css"],
 })
@@ -39,6 +42,11 @@ export class GlobalStylingControlsComponent implements OnInit, OnDestroy {
   customCSS: string = '';
   cssValidationErrors: CSSValidationError[] = [];
   private cssValidationSubject = new Subject<string>();
+
+  // Font manager properties
+  showFontManager = false;
+  currentHeadingFont: FontFamily | null = null;
+  currentBodyFont: FontFamily | null = null;
 
   // Font options
   fontOptions = [
@@ -134,6 +142,7 @@ export class GlobalStylingControlsComponent implements OnInit, OnDestroy {
 
   constructor(
     private globalStylingService: GlobalStylingService,
+    private fontManagementService: FontManagementService,
     private cssValidationService: CssValidationService
   ) {}
 
@@ -441,5 +450,54 @@ export class GlobalStylingControlsComponent implements OnInit, OnDestroy {
     this.customCSS = '';
     this.cssValidationErrors = [];
     this.applyCustomCSS(); // This will remove the custom styles
+  }
+
+  /**
+   * Open font manager
+   */
+  openFontManager(): void {
+    this.showFontManager = !this.showFontManager;
+  }
+
+  /**
+   * Handle font selection from font manager
+   */
+  onFontSelected(event: { type: 'heading' | 'body', font: FontFamily }): void {
+    if (event.type === 'heading') {
+      this.currentHeadingFont = event.font;
+    } else {
+      this.currentBodyFont = event.font;
+    }
+    
+    // Close font manager after selection
+    this.showFontManager = false;
+  }
+
+  /**
+   * Get current heading font name for display
+   */
+  getCurrentHeadingFontName(): string {
+    if (this.currentHeadingFont) {
+      return this.currentHeadingFont.displayName;
+    }
+    
+    // Extract font name from current typography settings
+    const currentFont = this.globalStyles.typography?.headingFont || 'Inter, sans-serif';
+    const fontName = currentFont.split(',')[0].replace(/['"]/g, '').trim();
+    return fontName;
+  }
+
+  /**
+   * Get current body font name for display
+   */
+  getCurrentBodyFontName(): string {
+    if (this.currentBodyFont) {
+      return this.currentBodyFont.displayName;
+    }
+    
+    // Extract font name from current typography settings
+    const currentFont = this.globalStyles.typography?.bodyFont || 'Inter, sans-serif';
+    const fontName = currentFont.split(',')[0].replace(/['"]/g, '').trim();
+    return fontName;
   }
 }
