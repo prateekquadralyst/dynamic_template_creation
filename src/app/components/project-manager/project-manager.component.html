@@ -1,0 +1,386 @@
+<div class="project-manager-overlay" (keydown)="onKeyDown($event)" tabindex="0">
+  <div class="project-manager-modal">
+    <!-- Header -->
+    <div class="project-manager-header">
+      <h2 class="modal-title">Project Manager</h2>
+      <button class="close-btn" (click)="close()" aria-label="Close">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="error" class="error-message">
+      <div class="error-content">
+        <i class="bi bi-exclamation-triangle"></i>
+        <span>{{ error }}</span>
+        <button
+          class="error-close"
+          (click)="clearError()"
+          aria-label="Dismiss error"
+        >
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="project-controls">
+      <div class="search-section">
+        <div class="search-input-wrapper">
+          <i class="bi bi-search search-icon"></i>
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search projects..."
+            [value]="searchQuery"
+            (input)="onSearchChange($any($event.target).value || '')"
+          />
+        </div>
+      </div>
+
+      <div class="control-buttons">
+        <div class="sort-dropdown">
+          <button
+            class="sort-btn"
+            [class.active]="sortBy === 'name'"
+            (click)="changeSorting('name')"
+          >
+            Name
+            <i
+              class="bi"
+              [class.bi-arrow-up]="sortBy === 'name' && sortOrder === 'asc'"
+              [class.bi-arrow-down]="sortBy === 'name' && sortOrder === 'desc'"
+            ></i>
+          </button>
+          <button
+            class="sort-btn"
+            [class.active]="sortBy === 'updatedAt'"
+            (click)="changeSorting('updatedAt')"
+          >
+            Modified
+            <i
+              class="bi"
+              [class.bi-arrow-up]="
+                sortBy === 'updatedAt' && sortOrder === 'asc'
+              "
+              [class.bi-arrow-down]="
+                sortBy === 'updatedAt' && sortOrder === 'desc'
+              "
+            ></i>
+          </button>
+          <button
+            class="sort-btn"
+            [class.active]="sortBy === 'createdAt'"
+            (click)="changeSorting('createdAt')"
+          >
+            Created
+            <i
+              class="bi"
+              [class.bi-arrow-up]="
+                sortBy === 'createdAt' && sortOrder === 'asc'
+              "
+              [class.bi-arrow-down]="
+                sortBy === 'createdAt' && sortOrder === 'desc'
+              "
+            ></i>
+          </button>
+        </div>
+
+        <button
+          class="create-btn"
+          (click)="openCreateModal()"
+          [disabled]="isLoading"
+        >
+          <i class="bi bi-plus-circle"></i>
+          New Project
+        </button>
+      </div>
+    </div>
+
+    <!-- Projects List -->
+    <div class="projects-container">
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Loading projects...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div
+        *ngIf="!isLoading && filteredProjects.length === 0 && !searchQuery"
+        class="empty-state"
+      >
+        <div class="empty-icon">
+          <i class="bi bi-folder-plus"></i>
+        </div>
+        <h3>No Projects Yet</h3>
+        <p>
+          Create your first project to get started building amazing websites.
+        </p>
+        <button class="create-btn primary" (click)="openCreateModal()">
+          <i class="bi bi-plus-circle"></i>
+          Create Your First Project
+        </button>
+      </div>
+
+      <!-- No Search Results -->
+      <div
+        *ngIf="!isLoading && filteredProjects.length === 0 && searchQuery"
+        class="no-results-state"
+      >
+        <div class="empty-icon">
+          <i class="bi bi-search"></i>
+        </div>
+        <h3>No Results Found</h3>
+        <p>No projects match your search for "{{ searchQuery }}"</p>
+        <button class="clear-search-btn" (click)="onSearchChange('')">
+          Clear Search
+        </button>
+      </div>
+
+      <!-- Projects Grid -->
+      <div
+        *ngIf="!isLoading && filteredProjects.length > 0"
+        class="projects-grid"
+      >
+        <div
+          *ngFor="let project of filteredProjects; trackBy: trackByProjectId"
+          class="project-card"
+          (click)="selectProject(project)"
+        >
+          <div class="project-card-header">
+            <h3 class="project-name">{{ project.name }}</h3>
+            <div class="project-actions">
+              <button
+                class="action-btn duplicate-btn"
+                (click)="openDuplicateModal(project, $event)"
+                title="Duplicate project"
+                aria-label="Duplicate project"
+              >
+                <i class="bi bi-files"></i>
+              </button>
+              <button
+                class="action-btn delete-btn"
+                (click)="openDeleteModal(project, $event)"
+                title="Delete project"
+                aria-label="Delete project"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="project-description">
+            <p>{{ project.description || "No description provided" }}</p>
+          </div>
+
+          <div class="project-stats">
+            <div class="stat-item">
+              <i class="bi bi-layers"></i>
+              <span>{{ getProjectStats(project) }}</span>
+            </div>
+            <div class="stat-item">
+              <i class="bi bi-clock"></i>
+              <span>{{ formatDate(project.updatedAt) }}</span>
+            </div>
+          </div>
+
+          <div class="project-version">
+            <span class="version-badge">v{{ project.version }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Project Modal -->
+  <div
+    *ngIf="showCreateModal"
+    class="modal-backdrop"
+    (click)="closeCreateModal()"
+  >
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Create New Project</h3>
+        <button class="close-btn" (click)="closeCreateModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form (ngSubmit)="createProject()" #createForm="ngForm">
+          <div class="form-group">
+            <label for="projectName">Project Name *</label>
+            <input
+              type="text"
+              id="projectName"
+              class="form-control"
+              [(ngModel)]="newProject.name"
+              name="projectName"
+              required
+              maxlength="100"
+              placeholder="Enter project name"
+              #nameInput
+            />
+            <div class="form-help">
+              {{ newProject.name.length }}/100 characters
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="projectDescription">Description</label>
+            <textarea
+              id="projectDescription"
+              class="form-control"
+              [(ngModel)]="newProject.description"
+              name="projectDescription"
+              maxlength="500"
+              rows="3"
+              placeholder="Describe your project (optional)"
+            ></textarea>
+            <div class="form-help">
+              {{ newProject.description.length }}/500 characters
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="closeCreateModal()"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="!createForm.valid || isLoading"
+            >
+              <span *ngIf="isLoading" class="loading-spinner small"></span>
+              Create Project
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div
+    *ngIf="showDeleteModal && selectedProject"
+    class="modal-backdrop"
+    (click)="closeDeleteModal()"
+  >
+    <div
+      class="modal-dialog confirmation-dialog"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-header">
+        <h3>Delete Project</h3>
+        <button class="close-btn" (click)="closeDeleteModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="confirmation-content">
+          <div class="warning-icon">
+            <i class="bi bi-exclamation-triangle"></i>
+          </div>
+          <div class="confirmation-text">
+            <p>
+              Are you sure you want to delete
+              <strong>"{{ selectedProject.name }}"</strong>?
+            </p>
+            <p class="warning-text">
+              This action cannot be undone. All project data will be permanently
+              lost.
+            </p>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeDeleteModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger"
+            (click)="deleteProject()"
+            [disabled]="isLoading"
+          >
+            <span *ngIf="isLoading" class="loading-spinner small"></span>
+            Delete Project
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duplicate Project Modal -->
+  <div
+    *ngIf="showDuplicateModal && selectedProject"
+    class="modal-backdrop"
+    (click)="closeDuplicateModal()"
+  >
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Duplicate Project</h3>
+        <button class="close-btn" (click)="closeDuplicateModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form (ngSubmit)="duplicateProject()" #duplicateForm="ngForm">
+          <div class="form-group">
+            <label for="duplicateName">New Project Name *</label>
+            <input
+              type="text"
+              id="duplicateName"
+              class="form-control"
+              [(ngModel)]="duplicateProjectName"
+              name="duplicateName"
+              required
+              maxlength="100"
+              placeholder="Enter name for duplicated project"
+            />
+            <div class="form-help">
+              {{ duplicateProjectName.length }}/100 characters
+            </div>
+          </div>
+
+          <div class="duplicate-info">
+            <p>
+              This will create a copy of
+              <strong>"{{ selectedProject.name }}"</strong> with all its
+              sections and settings.
+            </p>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="closeDuplicateModal()"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="!duplicateForm.valid || isLoading"
+            >
+              <span *ngIf="isLoading" class="loading-spinner small"></span>
+              Duplicate Project
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

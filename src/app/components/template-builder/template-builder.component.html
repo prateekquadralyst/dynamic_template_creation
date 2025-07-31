@@ -1,0 +1,353 @@
+<div class="template-builder-overlay" [class.active]="isVisible" (click)="hide()">
+  <div class="template-builder-modal" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="template-builder-header">
+      <div class="header-left">
+        <h2>Template Builder</h2>
+        <div class="template-info">
+          <input 
+            [(ngModel)]="template.name" 
+            class="template-name-input"
+            placeholder="Template Name"
+            (input)="triggerValidation()"
+          >
+          <select 
+            [(ngModel)]="template.type" 
+            class="template-type-select"
+            (change)="triggerValidation()"
+          >
+            <option *ngFor="let type of sectionTypes" [value]="type">
+              {{type | titlecase}}
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-secondary" (click)="resetTemplate()">
+          <i class="bi bi-arrow-clockwise"></i> Reset
+        </button>
+        <button 
+          class="btn btn-primary" 
+          (click)="saveTemplate()"
+          [disabled]="validationResult.errors.length > 0"
+        >
+          <i class="bi bi-save"></i> Save Template
+        </button>
+        <button class="btn btn-outline-secondary" (click)="hide()">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="template-builder-nav">
+      <button 
+        class="nav-tab"
+        [class.active]="activeTab === 'editor'"
+        (click)="setActiveTab('editor')"
+      >
+        <i class="bi bi-code-slash"></i> Editor
+      </button>
+      <button 
+        class="nav-tab"
+        [class.active]="activeTab === 'variables'"
+        (click)="setActiveTab('variables')"
+      >
+        <i class="bi bi-list-ul"></i> Variables
+        <span class="badge">{{template.variables.length}}</span>
+      </button>
+      <button 
+        class="nav-tab"
+        [class.active]="activeTab === 'preview'"
+        (click)="setActiveTab('preview')"
+      >
+        <i class="bi bi-eye"></i> Preview
+      </button>
+    </div>
+
+    <!-- Content Area -->
+    <div class="template-builder-content">
+      
+      <!-- Editor Tab -->
+      <div class="tab-content" [class.active]="activeTab === 'editor'">
+        <div class="editor-container">
+          
+          <!-- Editor Navigation -->
+          <div class="editor-nav">
+            <button 
+              class="editor-tab"
+              [class.active]="editorTab === 'html'"
+              (click)="setEditorTab('html')"
+            >
+              HTML
+            </button>
+            <button 
+              class="editor-tab"
+              [class.active]="editorTab === 'css'"
+              (click)="setEditorTab('css')"
+            >
+              CSS
+            </button>
+          </div>
+
+          <!-- HTML Editor -->
+          <div class="editor-panel" [class.active]="editorTab === 'html'">
+            <div class="editor-toolbar">
+              <span class="editor-label">HTML Template</span>
+              <div class="editor-actions">
+                <button class="btn btn-sm btn-outline-secondary" title="Format Code">
+                  <i class="bi bi-code"></i>
+                </button>
+              </div>
+            </div>
+            <textarea 
+              #htmlEditor
+              [(ngModel)]="template.html"
+              class="code-editor"
+              placeholder="Enter your HTML template here..."
+              (input)="onHtmlChange()"
+              (drop)="onHtmlEditorDrop($event)"
+              (dragover)="onDragOver($event)"
+              spellcheck="false"
+            ></textarea>
+          </div>
+
+          <!-- CSS Editor -->
+          <div class="editor-panel" [class.active]="editorTab === 'css'">
+            <div class="editor-toolbar">
+              <span class="editor-label">CSS Styles</span>
+              <div class="editor-actions">
+                <button class="btn btn-sm btn-outline-secondary" title="Format Code">
+                  <i class="bi bi-palette"></i>
+                </button>
+              </div>
+            </div>
+            <textarea 
+              #cssEditor
+              [(ngModel)]="template.css"
+              class="code-editor"
+              placeholder="Enter your CSS styles here..."
+              (input)="onCssChange()"
+              (drop)="onCssEditorDrop($event)"
+              (dragover)="onDragOver($event)"
+              spellcheck="false"
+            ></textarea>
+          </div>
+
+        </div>
+
+        <!-- Validation Results -->
+        <div class="validation-panel" *ngIf="validationResult.errors.length > 0 || validationResult.warnings.length > 0">
+          <h4>Validation Results</h4>
+          
+          <!-- Errors -->
+          <div class="validation-errors" *ngIf="validationResult.errors.length > 0">
+            <h5><i class="bi bi-exclamation-triangle text-danger"></i> Errors</h5>
+            <div class="validation-item error" *ngFor="let error of validationResult.errors">
+              <div class="validation-type">{{getErrorTypeName(error.type)}}</div>
+              <div class="validation-message">{{error.message}}</div>
+              <div class="validation-location" *ngIf="error.line">
+                Line {{error.line}}<span *ngIf="error.column">, Column {{error.column}}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Warnings -->
+          <div class="validation-warnings" *ngIf="validationResult.warnings.length > 0">
+            <h5><i class="bi bi-info-circle text-warning"></i> Warnings</h5>
+            <div class="validation-item warning" *ngFor="let warning of validationResult.warnings">
+              <div class="validation-type">{{getWarningTypeName(warning.type)}}</div>
+              <div class="validation-message">{{warning.message}}</div>
+              <div class="validation-suggestion" *ngIf="warning.suggestion">
+                Suggestion: {{warning.suggestion}}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Variables Tab -->
+      <div class="tab-content" [class.active]="activeTab === 'variables'">
+        <div class="variables-container">
+          
+          <!-- Variables Header -->
+          <div class="variables-header">
+            <h3>Template Variables</h3>
+            <button class="btn btn-primary" (click)="addVariable()">
+              <i class="bi bi-plus"></i> Add Variable
+            </button>
+          </div>
+
+          <!-- Variables List -->
+          <div class="variables-list">
+            <div 
+              class="variable-item"
+              *ngFor="let variable of template.variables; let i = index"
+              draggable="true"
+              (dragstart)="onVariableDragStart($event, variable)"
+              (dragend)="onVariableDragEnd()"
+            >
+              <div class="variable-info">
+                <div class="variable-name">
+                  <i class="bi bi-grip-vertical drag-handle"></i>
+                  <code>{{'{{'}}{{variable.name}}{{'}}'}}</code>
+                  <span class="variable-type">{{getVariableTypeName(variable.type)}}</span>
+                </div>
+                <div class="variable-label">{{variable.label}}</div>
+                <div class="variable-description" *ngIf="variable.description">
+                  {{variable.description}}
+                </div>
+              </div>
+              <div class="variable-actions">
+                <button class="btn btn-sm btn-outline-primary" (click)="editVariable(i)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" (click)="removeVariable(i)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" *ngIf="template.variables.length === 0">
+              <i class="bi bi-list-ul"></i>
+              <h4>No Variables Yet</h4>
+              <p>Add variables to make your template dynamic and customizable.</p>
+              <button class="btn btn-primary" (click)="addVariable()">
+                <i class="bi bi-plus"></i> Add Your First Variable
+              </button>
+            </div>
+          </div>
+
+          <!-- Variable Form -->
+          <div class="variable-form" *ngIf="isAddingVariable">
+            <div class="form-header">
+              <h4>{{editingVariableIndex >= 0 ? 'Edit' : 'Add'}} Variable</h4>
+            </div>
+            
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Variable Name *</label>
+                <input 
+                  [(ngModel)]="newVariable.name" 
+                  class="form-control"
+                  placeholder="e.g., title, description"
+                  pattern="[a-zA-Z_][a-zA-Z0-9_]*"
+                >
+              </div>
+              
+              <div class="form-group">
+                <label>Display Label *</label>
+                <input 
+                  [(ngModel)]="newVariable.label" 
+                  class="form-control"
+                  placeholder="e.g., Page Title, Description"
+                >
+              </div>
+              
+              <div class="form-group">
+                <label>Variable Type</label>
+                <select [(ngModel)]="newVariable.type" class="form-control">
+                  <option *ngFor="let type of variableTypes" [value]="type">
+                    {{getVariableTypeName(type)}}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label>Default Value</label>
+                <input 
+                  [(ngModel)]="newVariable.defaultValue" 
+                  class="form-control"
+                  placeholder="Default value for this variable"
+                >
+              </div>
+              
+              <div class="form-group full-width">
+                <label>Description</label>
+                <textarea 
+                  [(ngModel)]="newVariable.description" 
+                  class="form-control"
+                  rows="2"
+                  placeholder="Optional description for this variable"
+                ></textarea>
+              </div>
+              
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input 
+                    type="checkbox" 
+                    [(ngModel)]="newVariable.required"
+                  >
+                  Required
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button class="btn btn-secondary" (click)="cancelVariable()">
+                Cancel
+              </button>
+              <button 
+                class="btn btn-primary" 
+                (click)="saveVariable()"
+                [disabled]="!newVariable.name || !newVariable.label"
+              >
+                {{editingVariableIndex >= 0 ? 'Update' : 'Add'}} Variable
+              </button>
+            </div>
+          </div>
+
+          <!-- Drag Instructions -->
+          <div class="drag-instructions" *ngIf="template.variables.length > 0 && !isAddingVariable">
+            <i class="bi bi-info-circle"></i>
+            <span>Drag variables to the editor to insert placeholders</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Tab -->
+      <div class="tab-content" [class.active]="activeTab === 'preview'">
+        <div class="preview-container">
+          
+          <!-- Preview Header -->
+          <div class="preview-header">
+            <h3>Template Preview</h3>
+            <div class="preview-actions">
+              <button class="btn btn-outline-secondary" (click)="updatePreview()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+              </button>
+            </div>
+          </div>
+
+          <!-- Preview Frame -->
+          <div class="preview-frame-container">
+            <div class="preview-loading" *ngIf="isPreviewLoading">
+              <i class="bi bi-arrow-clockwise spin"></i>
+              <span>Loading preview...</span>
+            </div>
+            <iframe 
+              #previewFrame
+              class="preview-frame"
+              [class.loading]="isPreviewLoading"
+            ></iframe>
+          </div>
+
+          <!-- Preview Data -->
+          <div class="preview-data" *ngIf="template.variables.length > 0">
+            <h4>Preview Data</h4>
+            <div class="preview-data-grid">
+              <div class="preview-data-item" *ngFor="let variable of template.variables">
+                <label>{{variable.label}}</label>
+                <div class="preview-data-value">
+                  <code>{{previewData[variable.name]}}</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

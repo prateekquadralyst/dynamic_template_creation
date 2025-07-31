@@ -1,0 +1,133 @@
+.features-cards {
+    padding: 80px 0;
+    background-color: #ffffff;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  
+  .section-header {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 60px;
+  }
+  
+  .section-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 16px 0;
+  }
+  
+  .section-description {
+    font-size: 1.125rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0;
+  }
+  
+  .cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+  }
+  
+  .feature-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 30px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f3f4f6;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    background-color: #eef2ff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: #4f46e5;
+  }
+  
+  .card-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 12px 0;
+  }
+  
+  .card-description {
+    font-size: 1rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0 0 20px 0;
+    flex-grow: 1;
+  }
+  
+  .card-link {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #4f46e5;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  
+  .card-link:hover {
+    color: #4338ca;
+    text-decoration: underline;
+  }
+  
+  @media (max-width: 768px) {
+    .features-cards {
+      padding: 60px 0;
+    }
+    
+    .section-title {
+      font-size: 2rem;
+    }
+    
+    .section-description {
+      font-size: 1rem;
+    }
+    
+    .cards-container {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .section-title {
+      font-size: 1.75rem;
+    }
+    
+    .card-title {
+      font-size: 1.125rem;
+    }
+    
+    .cards-container {
+      grid-template-columns: 1fr;
+    }
+  }

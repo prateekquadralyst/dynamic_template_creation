@@ -1,0 +1,489 @@
+<!-- Main Container -->
+<div class="app-container">
+  <!-- Floating Editor Panel -->
+  <div class="editor-panel" [ngClass]="{'collapsed': isEditorCollapsed}">
+    <!-- Panel Header -->
+    <div class="editor-header">
+      <div class="logo">
+        <i class="bi bi-brush"></i>
+        <span>Website Builder</span>
+      </div>
+      <div class="project-info">
+        <div class="project-name" [title]="getCurrentProjectName()">
+          {{ getCurrentProjectName() }}
+          <span class="unsaved-indicator" *ngIf="hasUnsavedProjectChanges()" title="Unsaved changes">
+            <i class="bi bi-circle-fill"></i>
+          </span>
+        </div>
+        <button class="project-manager-btn" (click)="openProjectManager()" title="Manage Projects">
+          <i class="bi bi-folder"></i>
+        </button>
+      </div>
+      <button class="collapse-btn" (click)="toggleEditorPanel()">
+        <i class="bi" [ngClass]="isEditorCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+      </button>
+    </div>
+
+    <!-- Panel Content -->
+    <div class="editor-content" [ngClass]="{'hidden': isEditorCollapsed}">
+      <!-- Style Section Controls -->
+      <div class="panel-section" [ngClass]="{'collapsed': !sections.style}">
+        <div class="panel-header">
+          <div class="panel-header-main" (click)="toggleSection('style')">
+            <div class="panel-title">
+              <i class="bi bi-palette"></i>
+              <span>Style</span>
+            </div>
+            <i class="bi" [ngClass]="sections.style ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+          </div>
+        </div>
+        
+        <!-- Panel Body -->
+        <div class="panel-body" *ngIf="sections.style">
+          <!-- Style selector -->
+          <div class="layout-selector-row">
+            <button class="change-layout-btn" (click)="toggleTemplateSelector('style')">
+              <i class="bi" [ngClass]="{'bi-x-lg': isTemplatePanelActive && activeTemplateType === 'style', 'bi-palette': !(isTemplatePanelActive && activeTemplateType === 'style')}"></i>
+              {{ isTemplatePanelActive && activeTemplateType === 'style' ? 'Close Styles' : 'Browse Styles' }}
+            </button>
+          </div>
+          
+          <!-- Currently selected style display -->
+          <div class="form-group">
+            <label>Current Style</label>
+            <div class="selected-style-display">
+              <div class="style-info" *ngIf="selectedStyle">
+                <div class="style-name">{{ (availableStyles | filter:selectedStyle:'id')[0]?.name || 'Custom Style' }}</div>
+                <div class="style-colors">
+                  <span class="color-swatch" 
+                        *ngFor="let color of ['primaryColor', 'secondaryColor', 'accentColor']" 
+                        [style.background-color]="(availableStyles | filter:selectedStyle:'id')[0]?.[color]">
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hero Section Controls -->
+      <div class="panel-section" [ngClass]="{'collapsed': !sections.hero}">
+        <div class="panel-header">
+          <div class="panel-header-main" (click)="toggleSection('hero')">
+            <div class="panel-title">
+              <i class="bi bi-layout-text-window"></i>
+              <span>Hero Section</span>
+            </div>
+            <i class="bi" [ngClass]="sections.hero ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+          </div>
+          <div class="section-toggle" (click)="$event.stopPropagation()">
+            <label class="toggle-label">
+              <input type="checkbox" [(ngModel)]="sectionEnabled.hero" (ngModelChange)="updateTemplate()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        
+        <!-- Panel Body -->
+        <div class="panel-body" *ngIf="sections.hero">
+          <!-- Layout selector for Hero section -->
+          <div class="layout-selector-row">
+            <button class="change-layout-btn" (click)="toggleTemplateSelector('hero')">
+              <i class="bi" [ngClass]="{'bi-x-lg': isTemplatePanelActive && activeTemplateType === 'hero', 'bi-grid-3x3': !(isTemplatePanelActive && activeTemplateType === 'hero')}"></i>
+              {{ isTemplatePanelActive && activeTemplateType === 'hero' ? 'Close Layouts' : 'Browse Layouts' }}
+            </button>
+          </div>
+          
+          <div class="form-group">
+            <label for="headerText">Header Text</label>
+            <input 
+              id="headerText" 
+              type="text" 
+              [(ngModel)]="headerText" 
+              (ngModelChange)="updateTemplate()"
+              placeholder="Enter header">
+          </div>
+          
+          <div class="form-group">
+            <label for="imageUrl">Image URL</label>
+            <input 
+              id="imageUrl" 
+              type="text" 
+              [(ngModel)]="imageUrl" 
+              (ngModelChange)="updateTemplate()"
+              placeholder="Enter URL">
+          </div>
+          
+          <div class="form-group">
+            <label for="heroSubheading">Subheading</label>
+            <input 
+              id="heroSubheading" 
+              type="text" 
+              [(ngModel)]="heroSubheading" 
+              (ngModelChange)="updateTemplate()"
+              placeholder="Enter subheading">
+          </div>
+          
+          <!-- Code Editor Toggle -->
+          <div class="code-editor-toggle">
+            <label>HTML/CSS Code</label>
+            <button (click)="toggleCodeEditor('hero')">
+              <i class="bi" [ngClass]="codeEditors.hero ? 'bi-eye-slash' : 'bi-eye'"></i>
+              {{ codeEditors.hero ? 'Hide Code' : 'Show Code' }}
+            </button>
+          </div>
+          
+          <!-- Code Editor -->
+          <div class="code-editor" *ngIf="codeEditors.hero">
+            <div class="editor-tabs">
+              <button 
+                class="tab-btn" 
+                [ngClass]="{'active': heroActiveTab === 'html'}"
+                (click)="heroActiveTab = 'html'">HTML</button>
+              <button 
+                class="tab-btn" 
+                [ngClass]="{'active': heroActiveTab === 'css'}"
+                (click)="heroActiveTab = 'css'">CSS</button>
+            </div>
+            <div class="editor-tab-content">
+              <textarea 
+                *ngIf="heroActiveTab === 'html'"
+                [(ngModel)]="heroHtml" 
+                (ngModelChange)="updateTemplate()"
+                placeholder="Enter Hero HTML template"></textarea>
+              <textarea 
+                *ngIf="heroActiveTab === 'css'"
+                [(ngModel)]="heroCss" 
+                (ngModelChange)="updateTemplate()"
+                placeholder="Enter Hero CSS styles"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Features Section Controls -->
+      <div class="panel-section" [ngClass]="{'collapsed': !sections.features}">
+        <div class="panel-header">
+          <div class="panel-header-main" (click)="toggleSection('features')">
+            <div class="panel-title">
+              <i class="bi bi-grid-3x3-gap"></i>
+              <span>Features Section</span>
+            </div>
+            <i class="bi" [ngClass]="sections.features ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+          </div>
+          <div class="section-toggle" (click)="$event.stopPropagation()">
+            <label class="toggle-label">
+              <input type="checkbox" [(ngModel)]="sectionEnabled.features" (ngModelChange)="updateTemplate()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="panel-body" *ngIf="sections.features">
+          <!-- Layout selector for Features section -->
+          <div class="layout-selector-row">
+            <button class="change-layout-btn" (click)="toggleTemplateSelector('features')">
+              <i class="bi" [ngClass]="{'bi-x-lg': isTemplatePanelActive && activeTemplateType === 'features', 'bi-grid-3x3': !(isTemplatePanelActive && activeTemplateType === 'features')}"></i>
+              {{ isTemplatePanelActive && activeTemplateType === 'features' ? 'Close Layouts' : 'Browse Layouts' }}
+            </button>
+          </div>
+          
+          <div class="form-group">
+            <label for="featuresTitle">Section Title</label>
+            <input 
+              id="featuresTitle" 
+              type="text" 
+              [(ngModel)]="featuresTitle" 
+              (ngModelChange)="updateTemplate()"
+              placeholder="Enter title">
+          </div>
+          
+          <div class="form-group">
+            <label for="featuresSubheading">Section Subheading</label>
+            <input 
+              id="featuresSubheading" 
+              type="text" 
+              [(ngModel)]="featuresSubheading" 
+              (ngModelChange)="updateTemplate()"
+              placeholder="Enter subheading">
+          </div>
+          
+          <!-- Code Editor Toggle -->
+          <div class="code-editor-toggle">
+            <label>HTML/CSS Code</label>
+            <button (click)="toggleCodeEditor('features')">
+              <i class="bi" [ngClass]="codeEditors.features ? 'bi-eye-slash' : 'bi-eye'"></i>
+              {{ codeEditors.features ? 'Hide Code' : 'Show Code' }}
+            </button>
+          </div>
+          
+          <!-- Code Editor -->
+          <div class="code-editor" *ngIf="codeEditors.features">
+            <div class="editor-tabs">
+              <button 
+                class="tab-btn" 
+                [ngClass]="{'active': featuresActiveTab === 'html'}"
+                (click)="featuresActiveTab = 'html'">HTML</button>
+              <button 
+                class="tab-btn" 
+                [ngClass]="{'active': featuresActiveTab === 'css'}"
+                (click)="featuresActiveTab = 'css'">CSS</button>
+            </div>
+            <div class="editor-tab-content">
+              <textarea 
+                *ngIf="featuresActiveTab === 'html'"
+                [(ngModel)]="featuresHtml" 
+                (ngModelChange)="updateTemplate()"
+                placeholder="Enter Features section HTML"></textarea>
+              <textarea 
+                *ngIf="featuresActiveTab === 'css'"
+                [(ngModel)]="featuresCss" 
+                (ngModelChange)="updateTemplate()"
+                placeholder="Enter Features section CSS"></textarea>
+            </div>
+            <div class="helper-text" *ngIf="featuresActiveTab === 'html'">
+              Use <code>&lt;!-- FEATURE_ITEM_START --&gt;</code> and <code>&lt;!-- FEATURE_ITEM_END --&gt;</code> to mark the feature template.
+            </div>
+          </div>
+          
+          <!-- Features List with Consistent UI -->
+          <div class="features-list">
+            <div class="list-header">
+              <h5>Features</h5>
+            </div>
+            
+            <div class="feature-items">
+              <div class="feature-item" *ngFor="let feature of features; let i = index">
+                <div class="feature-item-header">
+                  <span class="feature-badge">Feature {{i+1}}</span>
+                  <button class="delete-btn" (click)="removeFeature(i)" title="Remove feature">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+                
+                <!-- Feature inputs - always using vertical layout regardless of template -->
+                <div class="form-group">
+                  <label>Title</label>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="feature.title" 
+                    (ngModelChange)="updateTemplate()"
+                    placeholder="Feature title">
+                </div>
+                
+                <div class="form-group">
+                  <label>Message</label>
+                  <textarea 
+                    [(ngModel)]="feature.message" 
+                    (ngModelChange)="updateTemplate()"
+                    placeholder="Feature description"></textarea>
+                </div>
+              </div>
+            </div>
+            
+            <button class="add-feature-btn" (click)="addFeature()">
+              <i class="bi bi-plus"></i>
+              Add Feature
+            </button>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- Template Selection Panel -->
+  <div class="template-selection-panel" [ngClass]="{'active': isTemplatePanelActive, 'hero-templates': activeTemplateType === 'hero', 'features-templates': activeTemplateType === 'features', 'testimonials-templates': activeTemplateType === 'testimonials', 'style-templates': activeTemplateType === 'style'}">
+    <div class="template-panel-header">
+      <div class="panel-title">
+        <i class="bi" [ngClass]="{
+          'bi-grid-3x3': activeTemplateType === 'hero' || activeTemplateType === 'features' || activeTemplateType === 'testimonials', 
+          'bi-palette': activeTemplateType === 'style'
+        }"></i>
+        <span>
+          {{ activeTemplateType === 'hero' ? 'Hero Layouts' : 
+             activeTemplateType === 'features' ? 'Features Layouts' :
+             activeTemplateType === 'testimonials' ? 'Testimonials Layouts' : 
+             'Style Templates' }}
+        </span>
+      </div>
+      <div class="panel-actions">
+        <button 
+          class="import-template-btn" 
+          *ngIf="activeTemplateType !== 'style'"
+          (click)="importTemplate()"
+          title="Import Template">
+          <i class="bi bi-upload"></i>
+          Import
+        </button>
+        <button 
+          class="create-template-btn" 
+          *ngIf="activeTemplateType !== 'style'"
+          (click)="openTemplateBuilder()"
+          title="Create Custom Template">
+          <i class="bi bi-plus"></i>
+          Create Template
+        </button>
+        <button class="close-panel-btn" (click)="closeTemplatePanel()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+    <div class="template-panel-content">
+      <!-- Show templates for hero or features sections -->
+      <div class="template-grid-large" *ngIf="activeTemplateType === 'hero' || activeTemplateType === 'features' || activeTemplateType === 'testimonials'">
+        <div *ngFor="let template of activeTemplateType === 'hero' ? availableHeroTemplates : availableFeaturesTemplates" 
+             class="template-card-large" 
+             [ngClass]="{'active': (activeTemplateType === 'hero' && selectedHeroTemplate === template.id) || 
+                                   (activeTemplateType === 'features' && selectedFeaturesTemplate === template.id) || (activeTemplateType === 'testimonials' && selectedFeaturesTemplate === template.id),
+                        'custom-template': !template.isBuiltIn}"
+             (click)="activeTemplateType && selectTemplate(activeTemplateType, template.id)">
+          <div class="template-preview-large">
+            <img [src]="template.previewImage" [alt]="template.name" class="template-preview-image">
+            <div class="template-badge" *ngIf="!template.isBuiltIn">
+              <i class="bi bi-star-fill"></i>
+              Custom
+            </div>
+            <div class="template-actions" *ngIf="!template.isBuiltIn" (click)="$event.stopPropagation()">
+              <button class="template-action-btn" (click)="exportTemplate(template.id)" title="Export Template">
+                <i class="bi bi-download"></i>
+              </button>
+              <button class="template-action-btn" (click)="editCustomTemplate(template.id)" title="Edit Template">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="template-action-btn delete-btn" (click)="deleteCustomTemplate(template.id)" title="Delete Template">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+          <div class="template-info-large">
+            <h4 class="template-name">
+              {{ template.name }}
+              <span class="template-type-badge" *ngIf="!template.isBuiltIn">Custom</span>
+            </h4>
+            <p class="template-description">{{ template.description }}</p>
+            <div class="template-tags" *ngIf="template.tags && template.tags.length > 0">
+              <span class="tag" *ngFor="let tag of template.tags">{{ tag }}</span>
+            </div>
+            <button class="select-template-btn" 
+                    [ngClass]="{'selected': (activeTemplateType === 'hero' && selectedHeroTemplate === template.id) || 
+                                           (activeTemplateType === 'features' && selectedFeaturesTemplate === template.id) || (activeTemplateType === 'testimonials' && selectedFeaturesTemplate === template.id)}">
+              {{ (activeTemplateType === 'hero' && selectedHeroTemplate === template.id) || 
+                 (activeTemplateType === 'features' && selectedFeaturesTemplate === template.id) || (activeTemplateType === 'testimonials' && selectedFeaturesTemplate === template.id) ? 'Selected' : 'Select Layout' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Show style templates -->
+      <div class="template-grid-large" *ngIf="activeTemplateType === 'style'">
+        <div *ngFor="let style of availableStyles" 
+             class="template-card-large style-card" 
+             [ngClass]="{'active': selectedStyle === style.id}"
+             (click)="selectStyleTemplate(style.id)">
+          <div class="style-preview-large">
+            <div class="style-color-palette">
+              <div class="style-color primary-color" [style.background-color]="style.primaryColor"></div>
+              <div class="style-color secondary-color" [style.background-color]="style.secondaryColor"></div>
+              <div class="style-color accent-color" [style.background-color]="style.accentColor"></div>
+              <div class="style-color background-color" [style.background-color]="style.backgroundColor"></div>
+              <div class="style-color text-color" [style.background-color]="style.textColor"></div>
+            </div>
+            <div class="style-font-preview">
+              <h3 [style.font-family]="style.headingFont">Heading Font</h3>
+              <p [style.font-family]="style.bodyFont">This is how your body text will appear on the page.</p>
+            </div>
+          </div>
+          <div class="template-info-large">
+            <h4 class="template-name">{{ style.name }}</h4>
+            <p class="template-description">{{ style.description }}</p>
+            <button class="select-template-btn" 
+                    [ngClass]="{'selected': selectedStyle === style.id}">
+              {{ selectedStyle === style.id ? 'Selected' : 'Select Style' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay for Template Panel -->
+  <div class="template-panel-overlay" 
+       [ngClass]="{'active': isTemplatePanelActive}"
+       (click)="closeTemplatePanel()"></div>
+
+  <!-- Preview Panel -->
+  <div class="preview-panel" [ngClass]="{'full-width': isEditorCollapsed}">
+    <div class="preview-header">
+      <div class="title">
+        <i class="bi bi-display"></i>
+        <span>Preview</span>
+      </div>
+      <div class="preview-controls">
+        <!-- Device buttons for responsive preview -->
+        <div class="device-buttons">
+          <button 
+            [ngClass]="{'active': previewMode === 'desktop'}" 
+            (click)="setPreviewMode('desktop')" 
+            title="Desktop View">
+            <i class="bi bi-laptop"></i>
+          </button>
+          <button 
+            [ngClass]="{'active': previewMode === 'tablet'}" 
+            (click)="setPreviewMode('tablet')" 
+            title="Tablet View">
+            <i class="bi bi-tablet"></i>
+          </button>
+          <button 
+            [ngClass]="{'active': previewMode === 'mobile'}" 
+            (click)="setPreviewMode('mobile')" 
+            title="Mobile View">
+            <i class="bi bi-phone"></i>
+          </button>
+        </div>
+        
+        <!-- New button for opening preview in a new window -->
+        <button class="preview-new-window-btn" (click)="openPreviewInNewWindow()">
+          <i class="bi bi-box-arrow-up-right"></i>
+          Preview
+        </button>
+        
+        <!-- Toggle editor button -->
+        <button class="toggle-panel-btn" (click)="toggleEditorPanel()">
+          <i class="bi" [ngClass]="isEditorCollapsed ? 'bi-pencil-square' : 'bi-layout-sidebar-inset-reverse'"></i>
+          {{ isEditorCollapsed ? 'Show Editor' : 'Hide Editor' }}
+        </button>
+      </div>
+    </div>
+    
+    <div class="preview-content">
+      <app-preview 
+        [headerText]="headerText"
+        [heroSubheading]="heroSubheading" 
+        [imageUrl]="imageUrl"
+        [heroHtml]="sectionEnabled.hero ? heroHtml : ''"
+        [heroCss]="sectionEnabled.hero ? heroCss : ''"
+        [featuresHtml]="sectionEnabled.features ? featuresHtml : ''"
+        [featuresCss]="sectionEnabled.features ? featuresCss : ''"
+        [testimonialsHtml]="sectionEnabled.testimonial ? testimonialsHtml : ''"
+        [testimonialsCss]="sectionEnabled.testimonial ? testimonialsCss : ''"
+        [featuresTitle]="featuresTitle"
+        [featuresSubheading]="featuresSubheading"
+        [features]="features"
+        [previewMode]="previewMode"
+        [sectionEnabled]="sectionEnabled"
+        [styleCss]="styleCss">
+      </app-preview>
+    </div>
+  </div>
+
+  <!-- Project Manager Modal -->
+  <app-project-manager 
+    *ngIf="showProjectManager"
+    (projectSelected)="onProjectSelected($event)"
+    (closeManager)="closeProjectManager()">
+  </app-project-manager>
+
+  <!-- Template Builder Modal -->
+  <app-template-builder #templateBuilder></app-template-builder>
+</div>

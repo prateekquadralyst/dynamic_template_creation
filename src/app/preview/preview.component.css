@@ -1,0 +1,67 @@
+.preview-wrapper {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: var(--preview-bg, #f3f4f6);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .preview-container {
+    padding: 16px;
+    min-height: 100%;
+    position: relative;
+    margin: 0 auto;
+    transition: all 0.3s ease;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    background-image: 
+      radial-gradient(circle, rgba(200, 200, 200, 0.2) 1px, transparent 1px);
+    background-size: 20px 20px;
+    border: 1px solid rgba(229, 231, 235, 0.7);
+    flex: 1;
+    overflow-y: auto;
+  }
+  
+  .preview-container::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.85);
+    z-index: -1;
+    border-radius: 6px;
+  }
+  
+  .desktop {
+    width: 100%;
+  }
+  
+  .tablet {
+    width: 768px;
+    max-width: 100%;
+  }
+  
+  .mobile {
+    width: 375px;
+    max-width: 100%;
+  }
+  
+  @media (max-width: 768px) {
+    .preview-wrapper {
+      padding: 8px;
+    }
+    
+    .preview-container {
+      padding: 12px;
+    }
+    
+    .tablet, .mobile {
+      width: 100%;
+    }
+  }

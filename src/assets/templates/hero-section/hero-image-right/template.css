@@ -1,0 +1,242 @@
+.hero-image-right {
+    padding: 100px 0;
+    background-color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .hero-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 60px;
+  }
+  
+  .hero-text-column {
+    flex: 1;
+    max-width: 540px;
+  }
+  
+  .hero-tagline {
+    display: inline-block;
+    padding: 6px 16px;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border-radius: 50px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  
+  .hero-heading {
+    font-size: 3.5rem;
+    line-height: 1.1;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 20px 0;
+  }
+  
+  .hero-description {
+    font-size: 1.25rem;
+    line-height: 1.6;
+    color: #6b7280;
+    margin: 0 0 32px 0;
+  }
+  
+  .hero-cta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-primary:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-2px);
+  }
+  
+  .icon-arrow {
+    width: 20px;
+    margin-left: 8px;
+  }
+  
+  .btn-text {
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    color: #4b5563;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    padding: 0;
+  }
+  
+  .btn-text:hover {
+    color: #2563eb;
+  }
+  
+  .icon-play {
+    width: 24px;
+    margin-right: 8px;
+    color: #2563eb;
+  }
+  
+  .hero-users {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  
+  .user-avatars {
+    display: flex;
+  }
+  
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #9ca3af;
+    border: 2px solid white;
+    margin-left: -8px;
+  }
+  
+  .avatar:first-child {
+    margin-left: 0;
+    background-color: #2563eb;
+  }
+  
+  .avatar:nth-child(2) {
+    background-color: #10b981;
+  }
+  
+  .avatar:nth-child(3) {
+    background-color: #f59e0b;
+  }
+  
+  .avatar:nth-child(4) {
+    background-color: #ef4444;
+  }
+  
+  .user-text {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  
+  .hero-image-column {
+    flex: 1;
+    position: relative;
+  }
+  
+  .image-wrapper {
+    position: relative;
+    z-index: 1;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  .hero-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    transition: transform 0.5s ease;
+  }
+  
+  .image-wrapper:hover .hero-image {
+    transform: scale(1.03);
+  }
+  
+  .shape-1 {
+    position: absolute;
+    background-color: #bfdbfe;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    right: -50px;
+    top: -50px;
+    z-index: 0;
+  }
+  
+  .shape-2 {
+    position: absolute;
+    background-color: #dbeafe;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    left: 30px;
+    bottom: -40px;
+    z-index: 0;
+  }
+  
+  @media (max-width: 992px) {
+    .hero-container {
+      flex-direction: column;
+      gap: 40px;
+    }
+    
+    .hero-text-column {
+      max-width: 100%;
+      text-align: center;
+    }
+    
+    .hero-cta {
+      justify-content: center;
+    }
+    
+    .hero-users {
+      justify-content: center;
+    }
+    
+    .shape-1, .shape-2 {
+      display: none;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .hero-image-right {
+      padding: 60px 0;
+    }
+    
+    .hero-heading {
+      font-size: 2.5rem;
+    }
+    
+    .hero-description {
+      font-size: 1.125rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .hero-heading {
+      font-size: 2rem;
+    }
+    
+    .hero-cta {
+      flex-direction: column;
+      width: 100%;
+    }
+    
+    .btn-primary, .btn-text {
+      width: 100%;
+    }
+  }
