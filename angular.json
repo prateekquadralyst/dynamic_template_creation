@@ -24,6 +24,16 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*.js",
+                "input": "node_modules/monaco-editor/esm/vs",
+                "output": "assets/monaco-editor/vs"
+              },
+              {
+                "glob": "**/*.ttf",
+                "input": "node_modules/monaco-editor/esm/vs/base/browser/ui/codicons/codicon",
+                "output": "assets/monaco-editor/codicon"
               }
             ],
             "styles": [

@@ -1,0 +1,447 @@
+<div class="global-styling-controls">
+  <!-- Header -->
+  <div class="controls-header">
+    <h3 class="controls-title">
+      <i class="bi bi-palette"></i>
+      Global Styling
+    </h3>
+    <div class="header-actions">
+      <button 
+        class="btn btn-sm btn-outline-secondary" 
+        (click)="exportStyles()"
+        title="Export Styles">
+        <i class="bi bi-download"></i>
+      </button>
+      <button 
+        class="btn btn-sm btn-outline-secondary" 
+        (click)="importStyles()"
+        title="Import Styles">
+        <i class="bi bi-upload"></i>
+      </button>
+      <button 
+        class="btn btn-sm btn-outline-danger" 
+        (click)="resetToDefaults()"
+        title="Reset to Defaults">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Typography Panel -->
+  <div class="styling-panel">
+    <div class="panel-header" (click)="togglePanel('typography')">
+      <h4 class="panel-title">
+        <i class="bi bi-type"></i>
+        Typography
+      </h4>
+      <i class="bi" [class.bi-chevron-down]="panels.typography" [class.bi-chevron-right]="!panels.typography"></i>
+    </div>
+    
+    <div class="panel-content" [class.collapsed]="!panels.typography">
+      <!-- Heading Font -->
+      <div class="form-group">
+        <label class="form-label">Heading Font</label>
+        <select 
+          class="form-select" 
+          [(ngModel)]="globalStyles.typography.headingFont"
+          (change)="updateTypography()">
+          <option *ngFor="let font of fontOptions" [value]="font.value">
+            {{ font.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Body Font -->
+      <div class="form-group">
+        <label class="form-label">Body Font</label>
+        <select 
+          class="form-select" 
+          [(ngModel)]="globalStyles.typography.bodyFont"
+          (change)="updateTypography()">
+          <option *ngFor="let font of fontOptions" [value]="font.value">
+            {{ font.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Font Sizes -->
+      <div class="font-sizes-grid">
+        <div class="form-group">
+          <label class="form-label">H1 Size</label>
+          <select 
+            class="form-select form-select-sm" 
+            [(ngModel)]="globalStyles.typography.fontSizes.h1"
+            (change)="updateTypography()">
+            <option *ngFor="let size of fontSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">H2 Size</label>
+          <select 
+            class="form-select form-select-sm" 
+            [(ngModel)]="globalStyles.typography.fontSizes.h2"
+            (change)="updateTypography()">
+            <option *ngFor="let size of fontSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Body Size</label>
+          <select 
+            class="form-select form-select-sm" 
+            [(ngModel)]="globalStyles.typography.fontSizes.body"
+            (change)="updateTypography()">
+            <option *ngFor="let size of fontSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Line Heights -->
+      <div class="line-height-controls">
+        <div class="form-group">
+          <label class="form-label">Heading Line Height</label>
+          <input 
+            type="range" 
+            class="form-range" 
+            min="1" 
+            max="2" 
+            step="0.1"
+            [(ngModel)]="globalStyles.typography.lineHeights.heading"
+            (input)="updateTypography()">
+          <span class="range-value">{{ globalStyles.typography.lineHeights.heading }}</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Body Line Height</label>
+          <input 
+            type="range" 
+            class="form-range" 
+            min="1.2" 
+            max="2.5" 
+            step="0.1"
+            [(ngModel)]="globalStyles.typography.lineHeights.body"
+            (input)="updateTypography()">
+          <span class="range-value">{{ globalStyles.typography.lineHeights.body }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Colors Panel -->
+  <div class="styling-panel">
+    <div class="panel-header" (click)="togglePanel('colors')">
+      <h4 class="panel-title">
+        <i class="bi bi-palette-fill"></i>
+        Colors
+      </h4>
+      <i class="bi" [class.bi-chevron-down]="panels.colors" [class.bi-chevron-right]="!panels.colors"></i>
+    </div>
+    
+    <div class="panel-content" [class.collapsed]="!panels.colors">
+      <!-- Color Palettes -->
+      <div class="color-palettes">
+        <label class="form-label">Quick Palettes</label>
+        <div class="palette-grid">
+          <div 
+            *ngFor="let palette of colorPalettes" 
+            class="palette-option"
+            (click)="applyColorPalette(palette)"
+            [title]="palette.name">
+            <div class="palette-preview">
+              <div class="color-swatch" [style.background-color]="palette.colors.primary"></div>
+              <div class="color-swatch" [style.background-color]="palette.colors.secondary"></div>
+              <div class="color-swatch" [style.background-color]="palette.colors.accent"></div>
+            </div>
+            <span class="palette-name">{{ palette.name }}</span>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-outline-primary mt-2" (click)="randomizeColors()">
+          <i class="bi bi-shuffle"></i> Randomize
+        </button>
+      </div>
+
+      <!-- Individual Color Controls -->
+      <div class="color-controls">
+        <div class="form-group">
+          <label class="form-label">Primary Color</label>
+          <div class="color-input-group">
+            <input 
+              type="color" 
+              class="form-control form-control-color" 
+              [(ngModel)]="globalStyles.colors.primary"
+              (change)="updateColors()">
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="globalStyles.colors.primary"
+              (change)="updateColors()"
+              placeholder="#3b82f6">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Secondary Color</label>
+          <div class="color-input-group">
+            <input 
+              type="color" 
+              class="form-control form-control-color" 
+              [(ngModel)]="globalStyles.colors.secondary"
+              (change)="updateColors()">
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="globalStyles.colors.secondary"
+              (change)="updateColors()"
+              placeholder="#64748b">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Accent Color</label>
+          <div class="color-input-group">
+            <input 
+              type="color" 
+              class="form-control form-control-color" 
+              [(ngModel)]="globalStyles.colors.accent"
+              (change)="updateColors()">
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="globalStyles.colors.accent"
+              (change)="updateColors()"
+              placeholder="#f59e0b">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Text Color</label>
+          <div class="color-input-group">
+            <input 
+              type="color" 
+              class="form-control form-control-color" 
+              [(ngModel)]="globalStyles.colors.text"
+              (change)="updateColors()">
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="globalStyles.colors.text"
+              (change)="updateColors()"
+              placeholder="#1f2937">
+          </div>
+          <div class="accessibility-indicator" 
+               [class.accessible]="isAccessible(globalStyles.colors.text, globalStyles.colors.background)"
+               [class.not-accessible]="!isAccessible(globalStyles.colors.text, globalStyles.colors.background)">
+            <i class="bi" [class.bi-check-circle]="isAccessible(globalStyles.colors.text, globalStyles.colors.background)"
+               [class.bi-exclamation-triangle]="!isAccessible(globalStyles.colors.text, globalStyles.colors.background)"></i>
+            {{ isAccessible(globalStyles.colors.text, globalStyles.colors.background) ? 'Accessible' : 'Low Contrast' }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Background Color</label>
+          <div class="color-input-group">
+            <input 
+              type="color" 
+              class="form-control form-control-color" 
+              [(ngModel)]="globalStyles.colors.background"
+              (change)="updateColors()">
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="globalStyles.colors.background"
+              (change)="updateColors()"
+              placeholder="#ffffff">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Surface Color</label>
+          <div class="color-input-group">
+            <input 
+              type="color" 
+              class="form-control form-control-color" 
+              [(ngModel)]="globalStyles.colors.surface"
+              (change)="updateColors()">
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="globalStyles.colors.surface"
+              (change)="updateColors()"
+              placeholder="#f8fafc">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spacing Panel -->
+  <div class="styling-panel">
+    <div class="panel-header" (click)="togglePanel('spacing')">
+      <h4 class="panel-title">
+        <i class="bi bi-distribute-vertical"></i>
+        Spacing
+      </h4>
+      <i class="bi" [class.bi-chevron-down]="panels.spacing" [class.bi-chevron-right]="!panels.spacing"></i>
+    </div>
+    
+    <div class="panel-content" [class.collapsed]="!panels.spacing">
+      <div class="form-group">
+        <label class="form-label">Base Unit (px)</label>
+        <input 
+          type="range" 
+          class="form-range" 
+          min="8" 
+          max="32" 
+          step="2"
+          [(ngModel)]="globalStyles.spacing.baseUnit"
+          (input)="updateSpacing()">
+        <span class="range-value">{{ globalStyles.spacing.baseUnit }}px</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Section Padding</label>
+        <input 
+          type="text" 
+          class="form-control" 
+          [(ngModel)]="globalStyles.spacing.sectionPadding"
+          (change)="updateSpacing()"
+          placeholder="4rem 0">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Element Margin</label>
+        <input 
+          type="text" 
+          class="form-control" 
+          [(ngModel)]="globalStyles.spacing.elementMargin"
+          (change)="updateSpacing()"
+          placeholder="1rem 0">
+      </div>
+    </div>
+  </div>
+
+  <!-- Effects Panel -->
+  <div class="styling-panel">
+    <div class="panel-header" (click)="togglePanel('effects')">
+      <h4 class="panel-title">
+        <i class="bi bi-magic"></i>
+        Effects
+      </h4>
+      <i class="bi" [class.bi-chevron-down]="panels.effects" [class.bi-chevron-right]="!panels.effects"></i>
+    </div>
+    
+    <div class="panel-content" [class.collapsed]="!panels.effects">
+      <div class="form-check">
+        <input 
+          class="form-check-input" 
+          type="checkbox" 
+          id="enableShadows"
+          [(ngModel)]="globalStyles.effects.shadows"
+          (change)="updateEffects()">
+        <label class="form-check-label" for="enableShadows">
+          Enable Shadows
+        </label>
+      </div>
+
+      <div class="form-check">
+        <input 
+          class="form-check-input" 
+          type="checkbox" 
+          id="enableAnimations"
+          [(ngModel)]="globalStyles.effects.animations"
+          (change)="updateEffects()">
+        <label class="form-check-label" for="enableAnimations">
+          Enable Animations
+        </label>
+      </div>
+
+      <div class="form-check">
+        <input 
+          class="form-check-input" 
+          type="checkbox" 
+          id="enableTransitions"
+          [(ngModel)]="globalStyles.effects.transitions"
+          (change)="updateEffects()">
+        <label class="form-check-label" for="enableTransitions">
+          Enable Transitions
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom CSS Panel -->
+  <div class="styling-panel">
+    <div class="panel-header" (click)="togglePanel('customCSS')">
+      <h4 class="panel-title">
+        <i class="bi bi-code-slash"></i>
+        Custom CSS
+      </h4>
+      <i class="bi" [class.bi-chevron-down]="panels.customCSS" [class.bi-chevron-right]="!panels.customCSS"></i>
+    </div>
+    
+    <div class="panel-content" [class.collapsed]="!panels.customCSS">
+      <div class="custom-css-container">
+        <button 
+          class="btn btn-primary btn-sm mb-3"
+          (click)="openCSSEditor()"
+          style="width: 100%;">
+          <i class="bi bi-code-slash"></i>
+          Open CSS Editor
+        </button>
+        
+        <div class="form-group">
+          <label class="form-label">Quick CSS</label>
+          <textarea 
+            class="form-control" 
+            rows="6"
+            [(ngModel)]="customCSS"
+            (change)="updateCustomCSS()"
+            placeholder="/* Add your custom CSS here */&#10;.my-custom-class {&#10;  color: #333;&#10;  font-size: 16px;&#10;}">
+          </textarea>
+        </div>
+        
+        <div class="css-actions mt-2">
+          <button 
+            class="btn btn-outline-secondary btn-sm"
+            (click)="formatCustomCSS()"
+            title="Format CSS">
+            <i class="bi bi-code"></i>
+            Format
+          </button>
+          <button 
+            class="btn btn-outline-warning btn-sm"
+            (click)="minifyCustomCSS()"
+            title="Minify CSS">
+            <i class="bi bi-arrows-collapse"></i>
+            Minify
+          </button>
+          <button 
+            class="btn btn-outline-danger btn-sm"
+            (click)="clearCustomCSS()"
+            title="Clear CSS">
+            <i class="bi bi-trash"></i>
+            Clear
+          </button>
+        </div>
+        
+        <div *ngIf="cssValidationErrors.length > 0" class="css-validation-errors mt-3">
+          <h6 class="text-danger">
+            <i class="bi bi-exclamation-triangle"></i>
+            CSS Issues ({{ cssValidationErrors.length }})
+          </h6>
+          <div class="error-list">
+            <div 
+              *ngFor="let error of cssValidationErrors" 
+              class="error-item"
+              [class.error]="error.severity === 'error'"
+              [class.warning]="error.severity === 'warning'">
+              <i class="bi" 
+                 [class.bi-x-circle]="error.severity === 'error'"
+                 [class.bi-exclamation-triangle]="error.severity === 'warning'"></i>
+              <span class="error-message">{{ error.message }}</span>
+              <small class="error-location">(Line {{ error.line }})</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

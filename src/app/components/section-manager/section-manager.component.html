@@ -1,0 +1,250 @@
+<div class="section-manager">
+  <!-- Header -->
+  <div class="section-manager-header">
+    <div class="header-content">
+      <h3 class="manager-title">
+        <i class="bi bi-layers"></i>
+        Sections
+      </h3>
+      <button 
+        class="btn btn-primary btn-sm add-section-btn"
+        (click)="toggleLibrary()"
+        [class.active]="showLibrary">
+        <i class="bi bi-plus-circle"></i>
+        Add Section
+      </button>
+    </div>
+  </div>
+
+  <!-- Section Library -->
+  <div class="section-library" [class.show]="showLibrary">
+    <div class="library-header">
+      <div class="library-controls">
+        <!-- Search -->
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input 
+            type="text" 
+            class="form-control form-control-sm"
+            placeholder="Search sections..."
+            [(ngModel)]="searchQuery"
+            (input)="onSearchChange()">
+        </div>
+
+        <!-- Category Filter -->
+        <div class="category-filter">
+          <select 
+            class="form-select form-select-sm"
+            [(ngModel)]="selectedCategory"
+            (change)="filterByCategory(selectedCategory)">
+            <option value="all">All Categories</option>
+            <option 
+              *ngFor="let category of getAvailableCategories()" 
+              [value]="category">
+              {{ getCategoryDisplayName(category) }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Library Grid -->
+    <div class="library-grid">
+      <div 
+        *ngFor="let item of filteredLibrary" 
+        class="library-item"
+        (click)="addSection(item)">
+        <div class="item-preview">
+          <img [src]="item.previewImage" [alt]="item.name" class="preview-image">
+          <div class="item-overlay">
+            <i class="bi bi-plus-lg"></i>
+          </div>
+        </div>
+        <div class="item-info">
+          <h5 class="item-name">{{ item.name }}</h5>
+          <p class="item-description">{{ item.description }}</p>
+          <div class="item-meta">
+            <span class="item-type">{{ getSectionTypeDisplayName(item.type) }}</span>
+            <span class="item-time">
+              <i class="bi bi-clock"></i>
+              {{ item.estimatedSetupTime }}min
+            </span>
+          </div>
+          <div class="item-tags">
+            <span 
+              *ngFor="let tag of item.tags.slice(0, 3)" 
+              class="tag">
+              {{ tag }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredLibrary.length === 0" class="empty-state">
+      <i class="bi bi-search"></i>
+      <p>No sections found matching your criteria</p>
+      <button 
+        class="btn btn-outline-secondary btn-sm"
+        (click)="selectedCategory = 'all'; searchQuery = ''; applyFilters()">
+        Clear Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- Current Sections List -->
+  <div class="sections-list">
+    <div 
+      *ngIf="sections.length === 0" 
+      class="empty-sections">
+      <div class="empty-content">
+        <i class="bi bi-layers"></i>
+        <h4>No sections yet</h4>
+        <p>Add your first section to get started</p>
+        <button 
+          class="btn btn-primary"
+          (click)="toggleLibrary()">
+          <i class="bi bi-plus-circle"></i>
+          Add Section
+        </button>
+      </div>
+    </div>
+
+    <!-- Drag and Drop Container -->
+    <div 
+      cdkDropList
+      [cdkDropListData]="sections"
+      (cdkDropListDropped)="onSectionDrop($event)"
+      class="sections-container">
+      
+      <div 
+        *ngFor="let section of getSortedSections(); trackBy: trackBySection"
+        cdkDrag
+        class="section-item"
+        [class.invisible]="!section.isVisible"
+        (click)="selectSection(section)">
+        
+        <!-- Drag Handle -->
+        <div class="drag-handle" cdkDragHandle>
+          <i class="bi bi-grip-vertical"></i>
+        </div>
+
+        <!-- Section Content -->
+        <div class="section-content">
+          <div class="section-header">
+            <div class="section-info">
+              <h5 class="section-name">
+                {{ section.metadata.name || getSectionTypeDisplayName(section.type) }}
+              </h5>
+              <span class="section-type">{{ getSectionTypeDisplayName(section.type) }}</span>
+            </div>
+            
+            <!-- Visibility Toggle -->
+            <div class="section-controls">
+              <button 
+                class="btn btn-sm visibility-toggle"
+                [class.btn-outline-secondary]="!section.isVisible"
+                [class.btn-secondary]="section.isVisible"
+                (click)="toggleSectionVisibility(section); $event.stopPropagation()"
+                [title]="section.isVisible ? 'Hide section' : 'Show section'">
+                <i class="bi" [class.bi-eye]="section.isVisible" [class.bi-eye-slash]="!section.isVisible"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section Description -->
+          <p *ngIf="section.metadata.description" class="section-description">
+            {{ section.metadata.description }}
+          </p>
+
+          <!-- Section Meta -->
+          <div class="section-meta">
+            <span class="order-indicator">Position: {{ section.order + 1 }}</span>
+            <span *ngIf="section.metadata.isDuplicate" class="duplicate-badge">
+              <i class="bi bi-files"></i>
+              Copy
+            </span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="section-actions">
+          <!-- Move Up/Down -->
+          <div class="move-controls">
+            <button 
+              class="btn btn-sm btn-outline-secondary"
+              [disabled]="!canMoveUp(section)"
+              (click)="moveSectionUp(section); $event.stopPropagation()"
+              title="Move up">
+              <i class="bi bi-arrow-up"></i>
+            </button>
+            <button 
+              class="btn btn-sm btn-outline-secondary"
+              [disabled]="!canMoveDown(section)"
+              (click)="moveSectionDown(section); $event.stopPropagation()"
+              title="Move down">
+              <i class="bi bi-arrow-down"></i>
+            </button>
+          </div>
+
+          <!-- More Actions -->
+          <div class="dropdown">
+            <button 
+              class="btn btn-sm btn-outline-secondary dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+              (click)="$event.stopPropagation()">
+              <i class="bi bi-three-dots"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <button 
+                  class="dropdown-item"
+                  (click)="duplicateSection(section); $event.stopPropagation()">
+                  <i class="bi bi-files"></i>
+                  Duplicate
+                </button>
+              </li>
+              <li>
+                <button 
+                  class="dropdown-item"
+                  (click)="selectSection(section); $event.stopPropagation()">
+                  <i class="bi bi-pencil"></i>
+                  Edit
+                </button>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <button 
+                  class="dropdown-item text-danger"
+                  (click)="deleteSection(section); $event.stopPropagation()">
+                  <i class="bi bi-trash"></i>
+                  Delete
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Drag Preview -->
+        <div *cdkDragPreview class="drag-preview">
+          <div class="preview-content">
+            <i class="bi bi-grip-vertical"></i>
+            <span>{{ section.metadata.name || getSectionTypeDisplayName(section.type) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section Count -->
+  <div *ngIf="sections.length > 0" class="section-count">
+    <small class="text-muted">
+      {{ sections.length }} section{{ sections.length !== 1 ? 's' : '' }} total
+      <span *ngIf="getHiddenSectionsCount() > 0">
+        ({{ getVisibleSectionsCount() }} visible)
+      </span>
+    </small>
+  </div>
+</div>

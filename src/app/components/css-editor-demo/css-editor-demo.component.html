@@ -1,0 +1,171 @@
+<div class="css-editor-demo">
+  <div class="demo-header">
+    <h2 class="demo-title">
+      <i class="bi bi-code-slash"></i>
+      CSS Editor Demo
+    </h2>
+    <div class="demo-actions">
+      <button class="btn btn-outline-primary" (click)="loadCleanSample()">
+        <i class="bi bi-file-earmark-code"></i>
+        Load Clean Sample
+      </button>
+      <button class="btn btn-outline-warning" (click)="loadSampleWithErrors()">
+        <i class="bi bi-exclamation-triangle"></i>
+        Load Sample with Errors
+      </button>
+      <button class="btn btn-outline-danger" (click)="clearCSS()">
+        <i class="bi bi-trash"></i>
+        Clear
+      </button>
+    </div>
+  </div>
+
+  <div class="demo-content">
+    <!-- CSS Editor -->
+    <div class="editor-section">
+      <app-css-editor
+        [initialValue]="currentCSS"
+        [theme]="'vs'"
+        [minimap]="true"
+        [lineNumbers]="true"
+        [wordWrap]="'on'"
+        (valueChange)="onCSSChange($event)"
+        (validationErrors)="onValidationErrors($event)"
+        (cssConflicts)="onCSSConflicts($event)"
+        (editorReady)="onEditorReady($event)"
+      >
+      </app-css-editor>
+    </div>
+
+    <!-- Demo Information -->
+    <div class="info-section">
+      <div class="info-card">
+        <h3 class="info-title">
+          <i class="bi bi-info-circle"></i>
+          CSS Editor Features
+        </h3>
+        <ul class="feature-list">
+          <li>
+            <i class="bi bi-check-circle text-success"></i> Syntax highlighting
+            with Monaco Editor
+          </li>
+          <li>
+            <i class="bi bi-check-circle text-success"></i> Real-time CSS
+            validation
+          </li>
+          <li>
+            <i class="bi bi-check-circle text-success"></i> Error detection and
+            reporting
+          </li>
+          <li>
+            <i class="bi bi-check-circle text-success"></i> CSS conflict
+            detection
+          </li>
+          <li>
+            <i class="bi bi-check-circle text-success"></i> Code minification
+            and optimization
+          </li>
+          <li>
+            <i class="bi bi-check-circle text-success"></i> CSS snippets and
+            autocomplete
+          </li>
+          <li>
+            <i class="bi bi-check-circle text-success"></i> Property reference
+            panel
+          </li>
+          <li>
+            <i class="bi bi-check-circle text-success"></i> Light and dark
+            themes
+          </li>
+        </ul>
+      </div>
+
+      <div class="info-card" *ngIf="validationErrors.length > 0">
+        <h3 class="info-title">
+          <i class="bi bi-exclamation-triangle text-warning"></i>
+          Current Issues ({{ validationErrors.length }})
+        </h3>
+        <div class="issue-list">
+          <div
+            *ngFor="let error of validationErrors"
+            class="issue-item"
+            [class.error]="error.severity === 'error'"
+            [class.warning]="error.severity === 'warning'"
+          >
+            <div class="issue-icon">
+              <i
+                class="bi"
+                [class.bi-x-circle]="error.severity === 'error'"
+                [class.bi-exclamation-triangle]="error.severity === 'warning'"
+              ></i>
+            </div>
+            <div class="issue-details">
+              <div class="issue-message">{{ error.message }}</div>
+              <div class="issue-location">
+                Line {{ error.line }}, Column {{ error.column }}
+              </div>
+              <div class="issue-type">Type: {{ error.type }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-card" *ngIf="cssConflicts.length > 0">
+        <h3 class="info-title">
+          <i class="bi bi-arrow-repeat text-danger"></i>
+          CSS Conflicts ({{ cssConflicts.length }})
+        </h3>
+        <div class="conflict-list">
+          <div *ngFor="let conflict of cssConflicts" class="conflict-item">
+            <div class="conflict-header">
+              <span class="conflict-selector">{{ conflict.selector }}</span>
+              <span
+                class="conflict-severity"
+                [class]="'severity-' + conflict.severity"
+              >
+                {{ conflict.severity }}
+              </span>
+            </div>
+            <div class="conflict-property">
+              Property: <code>{{ conflict.property }}</code>
+            </div>
+            <div class="conflict-values">
+              Values:
+              <span
+                *ngFor="let value of conflict.values; let last = last"
+                class="conflict-value"
+              >
+                <code>{{ value }}</code
+                ><span *ngIf="!last">, </span>
+              </span>
+            </div>
+            <div class="conflict-locations">
+              Locations:
+              <span
+                *ngFor="let location of conflict.locations; let last = last"
+                class="location"
+              >
+                {{ location.line }}:{{ location.column
+                }}<span *ngIf="!last">, </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="info-card"
+        *ngIf="validationErrors.length === 0 && cssConflicts.length === 0"
+      >
+        <h3 class="info-title">
+          <i class="bi bi-check-circle text-success"></i>
+          No Issues Found
+        </h3>
+        <p class="success-message">
+          Your CSS is valid and has no conflicts! The editor is working
+          correctly.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

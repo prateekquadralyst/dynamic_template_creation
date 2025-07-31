@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Preview Image Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .preview { width: 300px; height: 200px; margin: 10px; display: inline-block; position: relative; }
+        .preview canvas { border: 1px solid #ccc; }
+        .preview h3 { margin: 5px 0; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>Section Preview Images</h1>
+    <p>This generates placeholder preview images for section templates.</p>
+    
+    <div id="previews"></div>
+
+    <script>
+        const sections = [
+            { id: 'hero-modern', name: 'Modern Hero', color: '#4361ee' },
+            { id: 'hero-video', name: 'Video Hero', color: '#7209b7' },
+            { id: 'testimonials-carousel', name: 'Testimonials Carousel', color: '#4cc9f0' },
+            { id: 'testimonials-grid', name: 'Testimonials Grid', color: '#81b29a' },
+            { id: 'pricing-cards', name: 'Pricing Cards', color: '#e07a5f' },
+            { id: 'pricing-table', name: 'Pricing Table', color: '#f2cc8f' },
+            { id: 'contact-form', name: 'Contact Form', color: '#ef233c' },
+            { id: 'contact-map', name: 'Contact with Map', color: '#2b2d42' },
+            { id: 'about-team', name: 'About with Team', color: '#ff6b6b' },
+            { id: 'about-story', name: 'Company Story', color: '#4ecdc4' },
+            { id: 'cta-simple', name: 'Simple CTA', color: '#ffd166' },
+            { id: 'cta-newsletter', name: 'Newsletter CTA', color: '#06ffa5' }
+        ];
+
+        const container = document.getElementById('previews');
+
+        sections.forEach(section => {
+            const div = document.createElement('div');
+            div.className = 'preview';
+            
+            const h3 = document.createElement('h3');
+            h3.textContent = section.name;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = 200;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Create gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 300, 200);
+            gradient.addColorStop(0, section.color);
+            gradient.addColorStop(1, section.color + '80');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 300, 200);
+            
+            // Add some geometric shapes
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fillRect(20, 20, 100, 60);
+            ctx.fillRect(140, 40, 140, 40);
+            ctx.fillRect(20, 100, 260, 20);
+            ctx.fillRect(20, 140, 180, 40);
+            
+            // Add text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(section.name, 150, 100);
+            
+            div.appendChild(h3);
+            div.appendChild(canvas);
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>

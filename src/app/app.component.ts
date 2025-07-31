@@ -11,6 +11,9 @@ import { PreviewComponent } from "./preview/preview.component";
 import { FilterPipe } from "./pipes/filter.pipe";
 import { ProjectManagerComponent } from "./components/project-manager/project-manager.component";
 import { TemplateBuilderComponent } from "./components/template-builder/template-builder.component";
+import { GlobalStylingControlsComponent } from "./components/global-styling-controls/global-styling-controls.component";
+import { CssInjectorComponent } from "./components/global-styling-controls/css-injector.component";
+import { CssEditorDemoComponent } from "./components/css-editor-demo/css-editor-demo.component";
 import {
   TemplateService,
   HeroTemplateVariables,
@@ -46,6 +49,9 @@ interface SectionEnabled {
     FilterPipe,
     ProjectManagerComponent,
     TemplateBuilderComponent,
+    GlobalStylingControlsComponent,
+    CssInjectorComponent,
+    CssEditorDemoComponent,
   ],
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.css"],
@@ -62,7 +68,11 @@ export class AppComponent implements OnInit, OnDestroy {
     features: true,
     testimonials: true,
     style: true, // Added new style section
+    cssEditor: false, // Added CSS editor demo section
   };
+
+  // CSS Editor Demo state
+  showCSSEditorDemo = false;
 
   // Section visibility toggle (enabled/disabled in preview)
   sectionEnabled: SectionEnabled = {
@@ -399,7 +409,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   // Toggle section visibility
-  toggleSection(section: "hero" | "features" | "testimonials" | "style"): void {
+  toggleSection(section: "hero" | "features" | "testimonials" | "style" | "cssEditor"): void {
     this.sections[section] = !this.sections[section];
   }
 

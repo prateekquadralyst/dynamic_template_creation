@@ -1,0 +1,280 @@
+<div class="css-editor-container">
+  <!-- Editor Toolbar -->
+  <div class="editor-toolbar">
+    <div class="toolbar-left">
+      <h4 class="editor-title">
+        <i class="bi bi-code-slash"></i>
+        CSS Editor
+      </h4>
+      <div class="editor-stats">
+        <span class="stat-item">
+          <i class="bi bi-file-earmark-code"></i>
+          {{ currentValue.split('\n').length }} lines
+        </span>
+        <span class="stat-item" *ngIf="errors.length > 0">
+          <i class="bi bi-exclamation-triangle text-warning"></i>
+          {{ errors.length }} {{ errors.length === 1 ? 'issue' : 'issues' }}
+        </span>
+        <span class="stat-item" *ngIf="conflicts.length > 0">
+          <i class="bi bi-arrow-repeat text-danger"></i>
+          {{ conflicts.length }} {{ conflicts.length === 1 ? 'conflict' : 'conflicts' }}
+        </span>
+      </div>
+    </div>
+    
+    <div class="toolbar-right">
+      <!-- Theme Selector -->
+      <div class="btn-group btn-group-sm">
+        <button 
+          class="btn btn-outline-secondary"
+          [class.active]="theme === 'vs'"
+          (click)="setTheme('vs')"
+          title="Light Theme">
+          <i class="bi bi-sun"></i>
+        </button>
+        <button 
+          class="btn btn-outline-secondary"
+          [class.active]="theme === 'vs-dark'"
+          (click)="setTheme('vs-dark')"
+          title="Dark Theme">
+          <i class="bi bi-moon"></i>
+        </button>
+      </div>
+      
+      <!-- Editor Actions -->
+      <div class="btn-group btn-group-sm ms-2">
+        <button 
+          class="btn btn-outline-primary"
+          (click)="formatCode()"
+          title="Format Code">
+          <i class="bi bi-code"></i>
+        </button>
+        <button 
+          class="btn btn-outline-success"
+          (click)="beautifyCSS()"
+          [disabled]="!isMinified"
+          title="Beautify CSS">
+          <i class="bi bi-magic"></i>
+        </button>
+        <button 
+          class="btn btn-outline-warning"
+          (click)="minifyCSS()"
+          [disabled]="isMinified"
+          title="Minify CSS">
+          <i class="bi bi-arrows-collapse"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Editor Content -->
+  <div class="editor-content">
+    <!-- Monaco Editor Container -->
+    <div class="editor-wrapper">
+      <div #editorContainer class="monaco-editor-container"></div>
+    </div>
+
+    <!-- Sidebar with validation and tools -->
+    <div class="editor-sidebar">
+      <!-- Validation Panel -->
+      <div class="sidebar-panel" *ngIf="errors.length > 0 || conflicts.length > 0">
+        <div class="panel-header">
+          <h5 class="panel-title">
+            <i class="bi bi-shield-exclamation"></i>
+            Issues
+          </h5>
+        </div>
+        <div class="panel-content">
+          <!-- Validation Errors -->
+          <div *ngIf="errors.length > 0" class="error-list">
+            <h6 class="error-category">
+              <i class="bi bi-exclamation-triangle"></i>
+              Validation ({{ errors.length }})
+            </h6>
+            <div 
+              *ngFor="let error of errors" 
+              class="error-item"
+              [class.error]="error.severity === 'error'"
+              [class.warning]="error.severity === 'warning'">
+              <div class="error-icon">
+                <i class="bi" 
+                   [class.bi-x-circle]="error.severity === 'error'"
+                   [class.bi-exclamation-triangle]="error.severity === 'warning'"></i>
+              </div>
+              <div class="error-details">
+                <div class="error-message">{{ error.message }}</div>
+                <div class="error-location">Line {{ error.line }}, Column {{ error.column }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CSS Conflicts -->
+          <div *ngIf="conflicts.length > 0" class="conflict-list">
+            <h6 class="error-category">
+              <i class="bi bi-arrow-repeat"></i>
+              Conflicts ({{ conflicts.length }})
+            </h6>
+            <div *ngFor="let conflict of conflicts" class="conflict-item">
+              <div class="conflict-icon">
+                <i class="bi bi-arrow-repeat"></i>
+              </div>
+              <div class="conflict-details">
+                <div class="conflict-selector">{{ conflict.selector }}</div>
+                <div class="conflict-property">{{ conflict.property }}</div>
+                <div class="conflict-values">
+                  <span *ngFor="let value of conflict.values; let last = last" class="conflict-value">
+                    {{ value }}<span *ngIf="!last">, </span>
+                  </span>
+                </div>
+                <div class="conflict-locations">
+                  Found at: 
+                  <span *ngFor="let location of conflict.locations; let last = last" class="location">
+                    {{ location.line }}:{{ location.column }}<span *ngIf="!last">, </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CSS Snippets Panel -->
+      <div class="sidebar-panel">
+        <div class="panel-header">
+          <h5 class="panel-title">
+            <i class="bi bi-collection"></i>
+            Snippets
+          </h5>
+        </div>
+        <div class="panel-content">
+          <div class="snippet-list">
+            <button 
+              class="snippet-item"
+              (click)="insertSnippet('display: flex;\njustify-content: center;\nalign-items: center;')"
+              title="Insert flexbox centering">
+              <i class="bi bi-plus-circle"></i>
+              <span>Flexbox Center</span>
+            </button>
+            <button 
+              class="snippet-item"
+              (click)="insertSnippet('display: grid;\nplace-items: center;')"
+              title="Insert grid centering">
+              <i class="bi bi-plus-circle"></i>
+              <span>Grid Center</span>
+            </button>
+            <button 
+              class="snippet-item"
+              (click)="insertSnippet('display: grid;\ngrid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\ngap: 1rem;')"
+              title="Insert responsive grid">
+              <i class="bi bi-plus-circle"></i>
+              <span>Responsive Grid</span>
+            </button>
+            <button 
+              class="snippet-item"
+              (click)="insertSnippet('background: none;\nborder: none;\npadding: 0;\nmargin: 0;\ncursor: pointer;')"
+              title="Insert button reset">
+              <i class="bi bi-plus-circle"></i>
+              <span>Button Reset</span>
+            </button>
+            <button 
+              class="snippet-item"
+              (click)="insertSnippet('transition: all 0.3s ease;')"
+              title="Insert smooth transition">
+              <i class="bi bi-plus-circle"></i>
+              <span>Smooth Transition</span>
+            </button>
+            <button 
+              class="snippet-item"
+              (click)="insertSnippet('box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);')"
+              title="Insert subtle shadow">
+              <i class="bi bi-plus-circle"></i>
+              <span>Subtle Shadow</span>
+            </button>
+            <button 
+              class="snippet-item"
+              (click)="insertSnippet('border-radius: 8px;')"
+              title="Insert rounded corners">
+              <i class="bi bi-plus-circle"></i>
+              <span>Rounded Corners</span>
+            </button>
+            <button 
+              class="snippet-item"
+              (click)="insertSnippet('@media (max-width: 768px) {\n  /* Mobile styles */\n}')"
+              title="Insert mobile media query">
+              <i class="bi bi-plus-circle"></i>
+              <span>Mobile Query</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CSS Properties Reference -->
+      <div class="sidebar-panel">
+        <div class="panel-header">
+          <h5 class="panel-title">
+            <i class="bi bi-book"></i>
+            Quick Reference
+          </h5>
+        </div>
+        <div class="panel-content">
+          <div class="reference-list">
+            <div class="reference-category">
+              <h6>Layout</h6>
+              <div class="reference-items">
+                <span class="reference-item" (click)="insertSnippet('display: ')">display</span>
+                <span class="reference-item" (click)="insertSnippet('position: ')">position</span>
+                <span class="reference-item" (click)="insertSnippet('flex: ')">flex</span>
+                <span class="reference-item" (click)="insertSnippet('grid: ')">grid</span>
+              </div>
+            </div>
+            <div class="reference-category">
+              <h6>Spacing</h6>
+              <div class="reference-items">
+                <span class="reference-item" (click)="insertSnippet('margin: ')">margin</span>
+                <span class="reference-item" (click)="insertSnippet('padding: ')">padding</span>
+                <span class="reference-item" (click)="insertSnippet('gap: ')">gap</span>
+              </div>
+            </div>
+            <div class="reference-category">
+              <h6>Typography</h6>
+              <div class="reference-items">
+                <span class="reference-item" (click)="insertSnippet('font-family: ')">font-family</span>
+                <span class="reference-item" (click)="insertSnippet('font-size: ')">font-size</span>
+                <span class="reference-item" (click)="insertSnippet('font-weight: ')">font-weight</span>
+                <span class="reference-item" (click)="insertSnippet('line-height: ')">line-height</span>
+              </div>
+            </div>
+            <div class="reference-category">
+              <h6>Colors</h6>
+              <div class="reference-items">
+                <span class="reference-item" (click)="insertSnippet('color: ')">color</span>
+                <span class="reference-item" (click)="insertSnippet('background: ')">background</span>
+                <span class="reference-item" (click)="insertSnippet('border: ')">border</span>
+                <span class="reference-item" (click)="insertSnippet('opacity: ')">opacity</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="editor-status-bar">
+    <div class="status-left">
+      <span class="status-item">
+        <i class="bi bi-check-circle text-success" *ngIf="errors.length === 0"></i>
+        <i class="bi bi-exclamation-triangle text-warning" *ngIf="errors.length > 0"></i>
+        {{ errors.length === 0 ? 'No issues' : errors.length + ' issues found' }}
+      </span>
+      <span class="status-item" *ngIf="isMinified">
+        <i class="bi bi-arrows-collapse"></i>
+        Minified
+      </span>
+    </div>
+    <div class="status-right">
+      <span class="status-item">CSS</span>
+      <span class="status-item">{{ currentValue.length }} characters</span>
+    </div>
+  </div>
+</div>
