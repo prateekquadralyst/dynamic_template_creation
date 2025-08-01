@@ -5,6 +5,7 @@ import { Subject, takeUntil, debounceTime } from "rxjs";
 import { GlobalStylingService } from "../../services/global-styling.service";
 import { FontManagementService } from "../../services/font-management.service";
 import { CssValidationService, CSSValidationError } from "../../services/css-validation.service";
+import { StyleExportImportService, StyleTemplate, StylePackage, StyleImportResult } from "../../services/style-export-import.service";
 import { CssEditorComponent } from "../css-editor/css-editor.component";
 import { FontManagerComponent } from "../font-manager/font-manager.component";
 import {
@@ -81,6 +82,16 @@ export class GlobalStylingControlsComponent implements OnInit, OnDestroy {
     "4rem",
   ];
 
+  // Style export/import properties
+  styleTemplates: StyleTemplate[] = [];
+  showStyleTemplates = false;
+  showExportDialog = false;
+  showImportDialog = false;
+  exportPackageName = '';
+  exportPackageDescription = '';
+  exportPackageTags = '';
+  importResult: StyleImportResult | null = null;
+
   // Predefined color palettes
   colorPalettes = [
     {
@@ -143,7 +154,8 @@ export class GlobalStylingControlsComponent implements OnInit, OnDestroy {
   constructor(
     private globalStylingService: GlobalStylingService,
     private fontManagementService: FontManagementService,
-    private cssValidationService: CssValidationService
+    private cssValidationService: CssValidationService,
+    private styleExportImportService: StyleExportImportService
   ) {}
 
   ngOnInit(): void {
@@ -163,6 +175,9 @@ export class GlobalStylingControlsComponent implements OnInit, OnDestroy {
       .subscribe(css => {
         this.validateCustomCSS(css);
       });
+
+    // Load predefined style templates
+    this.loadStyleTemplates();
   }
 
   ngOnDestroy(): void {
@@ -499,5 +514,234 @@ export class GlobalStylingControlsComponent implements OnInit, OnDestroy {
     const currentFont = this.globalStyles.typography?.bodyFont || 'Inter, sans-serif';
     const fontName = currentFont.split(',')[0].replace(/['"]/g, '').trim();
     return fontName;
+  }
+
+  // Style Export/Import Methods
+
+  /**
+   * Load style templates
+   */
+  loadStyleTemplates(): void {
+    this.styleTemplates = this.styleExportImportService.getPredefinedStyleTemplates();
+  }
+
+  /**
+   * Toggle style templates panel
+   */
+  toggleStyleTemplates(): void {
+    this.showStyleTemplates = !this.showStyleTemplates;
+  }
+
+  /**
+   * Apply a style template
+   */
+  applyStyleTemplate(template: StyleTemplate): void {
+    if (confirm(`Apply "${template.name}" style template? This will replace your current styles.`)) {
+      this.globalStylingService.updateGlobalStyles(template.globalStyles);
+      if (template.customCSS) {
+        this.customCSS = template.customCSS;
+        this.updateCustomCSS();
+      }
+      this.showStyleTemplates = false;
+    }
+  }
+
+  /**
+   * Open export dialog
+   */
+  openExportDialog(): void {
+    this.showExportDialog = true;
+    this.exportPackageName = '';
+    this.exportPackageDescription = '';
+    this.exportPackageTags = '';
+  }
+
+  /**
+   * Close export dialog
+   */
+  closeExportDialog(): void {
+    this.showExportDialog = false;
+  }
+
+  /**
+   * Export style package
+   */
+  exportStylePackage(): void {
+    if (!this.exportPackageName.trim()) {
+      alert('Please enter a package name.');
+      return;
+    }
+
+    const packageInfo = {
+      name: this.exportPackageName.trim(),
+      description: this.exportPackageDescription.trim() || 'Custom style package',
+      tags: this.exportPackageTags.split(',').map(tag => tag.trim()).filter(tag => tag),
+      createdBy: 'User'
+    };
+
+    const stylePackage = this.styleExportImportService.exportStylePackage(
+      this.globalStyles,
+      this.customCSS,
+      packageInfo
+    );
+
+    this.styleExportImportService.downloadStylePackage(stylePackage);
+    this.closeExportDialog();
+  }
+
+  /**
+   * Open import dialog
+   */
+  openImportDialog(): void {
+    this.showImportDialog = true;
+    this.importResult = null;
+  }
+
+  /**
+   * Close import dialog
+   */
+  closeImportDialog(): void {
+    this.showImportDialog = false;
+    this.importResult = null;
+  }
+
+  /**
+   * Import style package from file
+   */
+  async importStylePackageFromFile(): Promise<void> {
+    try {
+      const result = await this.styleExportImportService.importStylePackageFromFile();
+      this.importResult = result;
+
+      if (result.success && result.stylePackage) {
+        // Show preview of what will be imported
+        console.log('Style package imported successfully:', result.stylePackage);
+      }
+    } catch (error) {
+      this.importResult = {
+        success: false,
+        errors: ['Failed to import style package'],
+        warnings: []
+      };
+    }
+  }
+
+  /**
+   * Apply imported style package
+   */
+  applyImportedStylePackage(): void {
+    if (!this.importResult?.stylePackage) {
+      return;
+    }
+
+    if (confirm('Apply imported styles? This will replace your current styles.')) {
+      this.globalStylingService.updateGlobalStyles(this.importResult.stylePackage.globalStyles);
+      
+      if (this.importResult.stylePackage.customCSS) {
+        this.customCSS = this.importResult.stylePackage.customCSS;
+        this.updateCustomCSS();
+      }
+
+      this.closeImportDialog();
+    }
+  }
+
+  /**
+   * Enhanced export styles with package format
+   */
+  exportStylesEnhanced(): void {
+    this.openExportDialog();
+  }
+
+  /**
+   * Enhanced import styles with validation
+   */
+  importStylesEnhanced(): void {
+    this.openImportDialog();
+  }
+
+  /**
+   * Create style template from current styles
+   */
+  createStyleTemplate(): void {
+    const templateName = prompt('Enter a name for this style template:');
+    if (!templateName?.trim()) {
+      return;
+    }
+
+    const templateDescription = prompt('Enter a description (optional):') || 'Custom style template';
+
+    const packageInfo = {
+      name: templateName.trim(),
+      description: templateDescription.trim(),
+      tags: ['custom'],
+      createdBy: 'User'
+    };
+
+    const stylePackage = this.styleExportImportService.exportStylePackage(
+      this.globalStyles,
+      this.customCSS,
+      packageInfo
+    );
+
+    const template = this.styleExportImportService.createStyleTemplate(stylePackage);
+    
+    // Add to local templates (in a real app, this would be persisted)
+    this.styleTemplates.unshift(template);
+    
+    alert(`Style template "${templateName}" created successfully!`);
+  }
+
+  /**
+   * Share style template
+   */
+  shareStyleTemplate(template: StyleTemplate): void {
+    const sharedTemplate = this.styleExportImportService.shareStyleTemplate(template);
+    
+    // Copy share URL to clipboard
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(sharedTemplate.shareUrl).then(() => {
+        alert(`Share URL copied to clipboard:\n${sharedTemplate.shareUrl}`);
+      }).catch(() => {
+        prompt('Copy this share URL:', sharedTemplate.shareUrl);
+      });
+    } else {
+      prompt('Copy this share URL:', sharedTemplate.shareUrl);
+    }
+  }
+
+  /**
+   * Delete custom style template
+   */
+  deleteStyleTemplate(template: StyleTemplate): void {
+    if (template.createdBy === 'System') {
+      alert('Cannot delete system templates.');
+      return;
+    }
+
+    if (confirm(`Delete style template "${template.name}"?`)) {
+      const index = this.styleTemplates.findIndex(t => t.id === template.id);
+      if (index > -1) {
+        this.styleTemplates.splice(index, 1);
+      }
+    }
+  }
+
+  /**
+   * Get template tags as string
+   */
+  getTemplateTagsString(template: StyleTemplate): string {
+    return template.tags.join(', ');
+  }
+
+  /**
+   * Get template preview colors
+   */
+  getTemplatePreviewColors(template: StyleTemplate): { primary: string; secondary: string; background: string } {
+    return {
+      primary: template.globalStyles.colors.primary,
+      secondary: template.globalStyles.colors.secondary,
+      background: template.globalStyles.colors.background
+    };
   }
 }

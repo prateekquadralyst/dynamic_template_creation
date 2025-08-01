@@ -1,0 +1,286 @@
+<!-- Template Gallery Container -->
+<div class="template-gallery-page">
+  <div class="template-gallery-container">
+    
+    <!-- Gallery Header -->
+    <div class="gallery-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h2 class="gallery-title">
+            <i class="bi bi-grid-3x3"></i>
+            Template Gallery
+          </h2>
+          <p class="gallery-subtitle">Choose from our collection of professionally designed templates</p>
+        </div>
+        <div class="header-actions">
+          <a href="/firebase-demo" class="btn btn-outline-primary" title="Firebase Demo">
+            <i class="bi bi-cloud"></i>
+            Firebase Demo
+          </a>
+          <button class="btn btn-outline-secondary" (click)="toggleViewMode()" title="Toggle View Mode">
+            <i class="bi" [ngClass]="viewMode === 'grid' ? 'bi-list' : 'bi-grid-3x3'"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+      <div class="filter-row">
+        <!-- Category Filter -->
+        <div class="filter-group">
+          <label class="filter-label">Category</label>
+          <div class="category-pills">
+            <button 
+              class="category-pill"
+              [ngClass]="{ active: selectedCategory === 'all' }"
+              (click)="selectCategory('all')"
+            >
+              All Templates
+              <span class="count">({{ getTemplateCountForCategory('all') }})</span>
+            </button>
+            <button 
+              *ngFor="let category of categories"
+              class="category-pill"
+              [ngClass]="{ active: selectedCategory === category.id }"
+              (click)="selectCategory(category.id)"
+            >
+              <i class="bi" [ngClass]="category.icon"></i>
+              {{ category.name }}
+              <span class="count">({{ getTemplateCountForCategory(category.id) }})</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Search and Complexity Filter -->
+        <div class="filter-controls">
+          <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input 
+              type="text" 
+              placeholder="Search templates..."
+              [(ngModel)]="filter.searchQuery"
+              (ngModelChange)="onSearchChange()"
+              class="search-input"
+            >
+          </div>
+          
+          <select 
+            class="complexity-filter"
+            [(ngModel)]="filter.complexity"
+            (ngModelChange)="onComplexityFilterChange()"
+          >
+            <option value="all">All Complexity</option>
+            <option value="simple">Simple</option>
+            <option value="medium">Medium</option>
+            <option value="complex">Complex</option>
+          </select>
+
+          <button 
+            class="btn btn-outline-secondary btn-sm"
+            (click)="clearFilters()"
+            title="Clear Filters"
+          >
+            <i class="bi bi-arrow-clockwise"></i>
+            Clear
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading templates...</span>
+      </div>
+      <p class="loading-text">Loading templates...</p>
+    </div>
+
+    <!-- Templates Grid/List -->
+    <div *ngIf="!isLoading" class="templates-container">
+      
+      <!-- No Results -->
+      <div *ngIf="filteredTemplates.length === 0" class="no-results">
+        <i class="bi bi-search"></i>
+        <h4>No templates found</h4>
+        <p>Try adjusting your filters or search terms</p>
+        <button class="btn btn-primary" (click)="clearFilters()">Clear Filters</button>
+      </div>
+
+      <!-- Grid View -->
+      <div *ngIf="filteredTemplates.length > 0 && viewMode === 'grid'" class="templates-grid">
+        <div 
+          *ngFor="let template of filteredTemplates; trackBy: trackByTemplateId"
+          class="template-card"
+          [ngClass]="{ 'custom-template': !template.isBuiltIn }"
+          (click)="onTemplateSelect(template)"
+        >
+          <!-- Template Preview -->
+          <div class="template-preview">
+            <img 
+              [src]="template.previewImage" 
+              [alt]="template.name"
+              class="preview-image"
+              loading="lazy"
+            >
+            
+            <!-- Template Badges -->
+            <div class="template-badges">
+              <span 
+                *ngIf="!template.isBuiltIn" 
+                class="badge bg-primary custom-badge"
+              >
+                <i class="bi bi-star-fill"></i>
+                Custom
+              </span>
+              <span 
+                [ngClass]="getComplexityBadgeClass(template.complexity)"
+                class="complexity-badge"
+              >
+                {{ template.complexity | titlecase }}
+              </span>
+            </div>
+
+            <!-- Hover Actions -->
+            <div class="template-actions">
+              <button 
+                class="action-btn preview-btn"
+                (click)="onTemplatePreview(template, $event)"
+                title="Preview Template"
+              >
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Template Info -->
+          <div class="template-info">
+            <div class="template-header">
+              <h4 class="template-name">{{ template.name }}</h4>
+              <div class="template-category">
+                <i class="bi" [ngClass]="getCategoryById(template.category)?.icon"></i>
+                {{ getCategoryById(template.category)?.name }}
+              </div>
+            </div>
+            
+            <p class="template-description">{{ template.description }}</p>
+            
+            <!-- Template Tags -->
+            <div class="template-tags" *ngIf="template.tags && template.tags.length > 0">
+              <span 
+                *ngFor="let tag of template.tags.slice(0, 3)" 
+                class="tag"
+              >
+                {{ tag }}
+              </span>
+              <span *ngIf="template.tags.length > 3" class="tag more-tags">
+                +{{ template.tags.length - 3 }} more
+              </span>
+            </div>
+
+            <!-- Select Button -->
+            <button 
+              class="btn btn-primary select-btn w-100 mt-3"
+              [disabled]="isNavigating"
+              [ngClass]="{ 'loading': isNavigating && selectedTemplateId === template.id }"
+            >
+              <span *ngIf="isNavigating && selectedTemplateId === template.id" class="spinner-border spinner-border-sm me-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </span>
+              <i *ngIf="!(isNavigating && selectedTemplateId === template.id)" class="bi bi-check-circle"></i>
+              {{ isNavigating && selectedTemplateId === template.id ? 'Loading...' : 'Select Template' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- List View -->
+      <div *ngIf="filteredTemplates.length > 0 && viewMode === 'list'" class="templates-list">
+        <div 
+          *ngFor="let template of filteredTemplates; trackBy: trackByTemplateId"
+          class="template-list-item"
+          [ngClass]="{ 'custom-template': !template.isBuiltIn }"
+          (click)="onTemplateSelect(template)"
+        >
+          <!-- Template Preview Thumbnail -->
+          <div class="list-preview">
+            <img 
+              [src]="template.previewImage" 
+              [alt]="template.name"
+              class="preview-thumbnail"
+              loading="lazy"
+            >
+          </div>
+
+          <!-- Template Details -->
+          <div class="list-details">
+            <div class="list-header">
+              <h4 class="template-name">{{ template.name }}</h4>
+              <div class="list-badges">
+                <span 
+                  *ngIf="!template.isBuiltIn" 
+                  class="badge bg-primary"
+                >
+                  Custom
+                </span>
+                <span 
+                  [ngClass]="getComplexityBadgeClass(template.complexity)"
+                >
+                  {{ template.complexity | titlecase }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="list-meta">
+              <span class="category-info">
+                <i class="bi" [ngClass]="getCategoryById(template.category)?.icon"></i>
+                {{ getCategoryById(template.category)?.name }}
+              </span>
+            </div>
+            
+            <p class="list-description">{{ template.description }}</p>
+            
+            <!-- Template Tags -->
+            <div class="list-tags" *ngIf="template.tags && template.tags.length > 0">
+              <span 
+                *ngFor="let tag of template.tags.slice(0, 5)" 
+                class="tag"
+              >
+                {{ tag }}
+              </span>
+            </div>
+          </div>
+
+          <!-- List Actions -->
+          <div class="list-actions">
+            <button 
+              class="btn btn-outline-secondary btn-sm"
+              (click)="onTemplatePreview(template, $event)"
+              title="Preview"
+            >
+              <i class="bi bi-eye"></i>
+            </button>
+            <button 
+              class="btn btn-primary"
+              [disabled]="isNavigating"
+              [ngClass]="{ 'loading': isNavigating && selectedTemplateId === template.id }"
+            >
+              <span *ngIf="isNavigating && selectedTemplateId === template.id" class="spinner-border spinner-border-sm me-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </span>
+              {{ isNavigating && selectedTemplateId === template.id ? 'Loading...' : 'Select' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Customization Wizard -->
+  <app-template-customization-wizard
+    *ngIf="showWizard && selectedTemplateForWizard"
+    [template]="selectedTemplateForWizard"
+    (wizardCompleted)="onWizardCompleted($event)"
+    (wizardCancelled)="onWizardCancelled()"
+  ></app-template-customization-wizard>
+</div>

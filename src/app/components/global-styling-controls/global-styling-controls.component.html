@@ -7,16 +7,28 @@
     </h3>
     <div class="header-actions">
       <button 
+        class="btn btn-sm btn-outline-primary" 
+        (click)="toggleStyleTemplates()"
+        title="Style Templates">
+        <i class="bi bi-collection"></i>
+      </button>
+      <button 
         class="btn btn-sm btn-outline-secondary" 
-        (click)="exportStyles()"
-        title="Export Styles">
+        (click)="exportStylesEnhanced()"
+        title="Export Style Package">
         <i class="bi bi-download"></i>
       </button>
       <button 
         class="btn btn-sm btn-outline-secondary" 
-        (click)="importStyles()"
-        title="Import Styles">
+        (click)="importStylesEnhanced()"
+        title="Import Style Package">
         <i class="bi bi-upload"></i>
+      </button>
+      <button 
+        class="btn btn-sm btn-outline-info" 
+        (click)="createStyleTemplate()"
+        title="Save as Template">
+        <i class="bi bi-bookmark-plus"></i>
       </button>
       <button 
         class="btn btn-sm btn-outline-danger" 
@@ -24,6 +36,263 @@
         title="Reset to Defaults">
         <i class="bi bi-arrow-clockwise"></i>
       </button>
+    </div>
+  </div>
+
+  <!-- Style Templates Panel -->
+  <div class="style-templates-panel" [class.show]="showStyleTemplates">
+    <div class="panel-header">
+      <h4 class="panel-title">
+        <i class="bi bi-collection"></i>
+        Style Templates
+      </h4>
+      <button class="btn btn-sm btn-outline-secondary" (click)="toggleStyleTemplates()">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+    
+    <div class="templates-grid">
+      <div 
+        *ngFor="let template of styleTemplates" 
+        class="template-card"
+        [title]="template.description">
+        <div class="template-preview">
+          <div class="preview-colors">
+            <div 
+              class="color-dot" 
+              [style.background-color]="getTemplatePreviewColors(template).primary">
+            </div>
+            <div 
+              class="color-dot" 
+              [style.background-color]="getTemplatePreviewColors(template).secondary">
+            </div>
+            <div 
+              class="color-dot" 
+              [style.background-color]="getTemplatePreviewColors(template).background">
+            </div>
+          </div>
+        </div>
+        
+        <div class="template-info">
+          <h6 class="template-name">{{ template.name }}</h6>
+          <p class="template-description">{{ template.description }}</p>
+          <div class="template-tags">
+            <span class="badge bg-secondary" *ngFor="let tag of template.tags">{{ tag }}</span>
+          </div>
+          <div class="template-meta">
+            <small class="text-muted">
+              <i class="bi bi-person"></i> {{ template.createdBy }}
+              <span *ngIf="template.downloads > 0">
+                | <i class="bi bi-download"></i> {{ template.downloads }}
+              </span>
+            </small>
+          </div>
+        </div>
+        
+        <div class="template-actions">
+          <button 
+            class="btn btn-primary btn-sm"
+            (click)="applyStyleTemplate(template)">
+            <i class="bi bi-check"></i>
+            Apply
+          </button>
+          <button 
+            class="btn btn-outline-secondary btn-sm"
+            (click)="shareStyleTemplate(template)"
+            *ngIf="template.isShared">
+            <i class="bi bi-share"></i>
+          </button>
+          <button 
+            class="btn btn-outline-danger btn-sm"
+            (click)="deleteStyleTemplate(template)"
+            *ngIf="template.createdBy !== 'System'">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Dialog -->
+  <div class="modal" [class.show]="showExportDialog" *ngIf="showExportDialog">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-download"></i>
+            Export Style Package
+          </h5>
+          <button type="button" class="btn-close" (click)="closeExportDialog()"></button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Package Name *</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="exportPackageName"
+              placeholder="My Awesome Style Package"
+              required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea 
+              class="form-control" 
+              rows="3"
+              [(ngModel)]="exportPackageDescription"
+              placeholder="A beautiful style package with modern design elements...">
+            </textarea>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Tags (comma-separated)</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              [(ngModel)]="exportPackageTags"
+              placeholder="modern, minimal, blue, professional">
+            <small class="form-text text-muted">
+              Tags help others find your style package
+            </small>
+          </div>
+          
+          <div class="export-preview">
+            <h6>Preview</h6>
+            <div class="preview-colors">
+              <div class="color-preview">
+                <div class="color-swatch" [style.background-color]="globalStyles.colors.primary"></div>
+                <small>Primary</small>
+              </div>
+              <div class="color-preview">
+                <div class="color-swatch" [style.background-color]="globalStyles.colors.secondary"></div>
+                <small>Secondary</small>
+              </div>
+              <div class="color-preview">
+                <div class="color-swatch" [style.background-color]="globalStyles.colors.accent"></div>
+                <small>Accent</small>
+              </div>
+            </div>
+            <div class="typography-preview">
+              <div class="font-preview" [style.font-family]="globalStyles.typography.headingFont">
+                <strong>Heading Font</strong>
+              </div>
+              <div class="font-preview" [style.font-family]="globalStyles.typography.bodyFont">
+                Body Font Sample
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeExportDialog()">
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="exportStylePackage()"
+            [disabled]="!exportPackageName.trim()">
+            <i class="bi bi-download"></i>
+            Export Package
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Dialog -->
+  <div class="modal" [class.show]="showImportDialog" *ngIf="showImportDialog">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-upload"></i>
+            Import Style Package
+          </h5>
+          <button type="button" class="btn-close" (click)="closeImportDialog()"></button>
+        </div>
+        
+        <div class="modal-body">
+          <div *ngIf="!importResult" class="import-instructions">
+            <p>Select a style package file (.json) to import:</p>
+            <button 
+              class="btn btn-primary"
+              (click)="importStylePackageFromFile()">
+              <i class="bi bi-folder-open"></i>
+              Choose File
+            </button>
+          </div>
+          
+          <div *ngIf="importResult" class="import-result">
+            <div *ngIf="importResult.success" class="alert alert-success">
+              <h6>
+                <i class="bi bi-check-circle"></i>
+                Style Package Imported Successfully
+              </h6>
+              <div *ngIf="importResult.stylePackage" class="package-info">
+                <h6>{{ importResult.stylePackage.name }}</h6>
+                <p>{{ importResult.stylePackage.description }}</p>
+                <div class="package-meta">
+                  <small class="text-muted">
+                    Created by {{ importResult.stylePackage.createdBy }} 
+                    on {{ importResult.stylePackage.createdAt | date:'short' }}
+                  </small>
+                </div>
+                <div class="package-tags" *ngIf="importResult.stylePackage.tags.length > 0">
+                  <span class="badge bg-secondary" *ngFor="let tag of importResult.stylePackage.tags">
+                    {{ tag }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div *ngIf="!importResult.success" class="alert alert-danger">
+              <h6>
+                <i class="bi bi-x-circle"></i>
+                Import Failed
+              </h6>
+              <ul class="mb-0">
+                <li *ngFor="let error of importResult.errors">{{ error }}</li>
+              </ul>
+            </div>
+            
+            <div *ngIf="importResult.warnings.length > 0" class="alert alert-warning">
+              <h6>
+                <i class="bi bi-exclamation-triangle"></i>
+                Warnings
+              </h6>
+              <ul class="mb-0">
+                <li *ngFor="let warning of importResult.warnings">{{ warning }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeImportDialog()">
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="applyImportedStylePackage()"
+            *ngIf="importResult?.success"
+            [disabled]="!importResult?.stylePackage">
+            <i class="bi bi-check"></i>
+            Apply Styles
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-outline-primary" 
+            (click)="importStylePackageFromFile()"
+            *ngIf="importResult && !importResult.success">
+            <i class="bi bi-arrow-clockwise"></i>
+            Try Again
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

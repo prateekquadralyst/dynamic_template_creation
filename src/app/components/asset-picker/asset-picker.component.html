@@ -1,0 +1,326 @@
+<!-- Asset Picker Modal -->
+<div class="asset-picker-overlay" [class.active]="isVisible" (click)="close()">
+  <div class="asset-picker-modal" (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <div class="asset-picker-header">
+      <div class="header-left">
+        <h3 class="picker-title">
+          <i class="bi bi-images"></i>
+          {{ config.title || 'Select Asset' }}
+        </h3>
+        <div class="selection-info" *ngIf="config.multiSelect">
+          <span class="selection-count">{{ selectionCount }} selected</span>
+          <span class="max-selections" *ngIf="config.maxSelections">
+            (max {{ config.maxSelections }})
+          </span>
+        </div>
+      </div>
+      <div class="header-right">
+        <button 
+          class="btn btn-outline-secondary btn-sm"
+          (click)="clearSelection()"
+          *ngIf="config.multiSelect && selectionCount > 0"
+        >
+          <i class="bi bi-x-circle"></i> Clear
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" (click)="close()">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="asset-picker-toolbar" *ngIf="config.showSearch !== false || config.showFilters !== false">
+      
+      <!-- Search -->
+      <div class="search-section" *ngIf="config.showSearch !== false">
+        <div class="search-input-group">
+          <i class="bi bi-search search-icon"></i>
+          <input 
+            type="text" 
+            class="search-input"
+            placeholder="Search assets..."
+            [(ngModel)]="searchQuery"
+            (input)="onSearchChange($event)"
+          >
+        </div>
+      </div>
+
+      <!-- Filters and View Controls -->
+      <div class="toolbar-controls">
+        
+        <!-- Type Filters -->
+        <div class="type-filters" *ngIf="config.showFilters !== false">
+          <button 
+            class="filter-btn"
+            [class.active]="activeTypeFilter === null"
+            (click)="setTypeFilter(null)"
+          >
+            All
+          </button>
+          <button 
+            *ngFor="let type of availableTypeFilters"
+            class="filter-btn"
+            [class.active]="activeTypeFilter === type"
+            (click)="setTypeFilter(type)"
+          >
+            <span class="type-icon">{{ getAssetTypeIcon(type) }}</span>
+            {{ type | titlecase }}
+          </button>
+        </div>
+
+        <!-- View Mode Toggle -->
+        <div class="view-controls">
+          <button 
+            class="view-btn"
+            [class.active]="viewMode === 'grid'"
+            (click)="setViewMode('grid')"
+            title="Grid View"
+          >
+            <i class="bi bi-grid-3x3-gap"></i>
+          </button>
+          <button 
+            class="view-btn"
+            [class.active]="viewMode === 'list'"
+            (click)="setViewMode('list')"
+            title="List View"
+          >
+            <i class="bi bi-list"></i>
+          </button>
+        </div>
+
+        <!-- Upload Button -->
+        <button 
+          class="btn btn-primary btn-sm"
+          (click)="triggerFileUpload()"
+          *ngIf="config.showUpload !== false"
+        >
+          <i class="bi bi-upload"></i> Upload
+        </button>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="asset-picker-content">
+      
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="isLoading">
+        <div class="loading-spinner">
+          <i class="bi bi-arrow-clockwise spin"></i>
+        </div>
+        <p>Loading assets...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!isLoading && filteredAssets.length === 0">
+        <div class="empty-icon">
+          <i class="bi bi-images"></i>
+        </div>
+        <h4>{{ config.emptyMessage || 'No assets found' }}</h4>
+        <p *ngIf="searchQuery">Try adjusting your search or filters</p>
+        <p *ngIf="!searchQuery && config.showUpload !== false">Upload your first asset to get started</p>
+        <button 
+          class="btn btn-primary"
+          (click)="triggerFileUpload()"
+          *ngIf="!searchQuery && config.showUpload !== false"
+        >
+          <i class="bi bi-upload"></i> Upload Asset
+        </button>
+      </div>
+
+      <!-- Assets Grid -->
+      <div class="assets-container" *ngIf="!isLoading && filteredAssets.length > 0">
+        
+        <!-- Grid View -->
+        <div class="assets-grid" *ngIf="viewMode === 'grid'">
+          <div 
+            *ngFor="let asset of paginatedAssets"
+            class="asset-card"
+            [class.selected]="isAssetSelected(asset)"
+            [class.disabled]="!isAssetSelected(asset) && isMaxSelectionsReached"
+            (click)="selectAsset(asset)"
+          >
+            <div class="asset-preview">
+              <img 
+                *ngIf="asset.type === AssetType.IMAGE" 
+                [src]="asset.url" 
+                [alt]="asset.name"
+                class="asset-image"
+                loading="lazy"
+              >
+              <div 
+                *ngIf="asset.type !== AssetType.IMAGE"
+                class="asset-placeholder"
+                [style.background-color]="getAssetTypeColor(asset.type)"
+              >
+                <span class="asset-type-icon">{{ getAssetTypeIcon(asset.type) }}</span>
+              </div>
+              
+              <!-- Selection Indicator -->
+              <div class="selection-indicator" *ngIf="isAssetSelected(asset)">
+                <i class="bi bi-check-circle-fill"></i>
+              </div>
+              
+              <!-- Asset Type Badge -->
+              <div class="asset-type-badge">
+                {{ asset.type | titlecase }}
+              </div>
+            </div>
+            
+            <div class="asset-info">
+              <h5 class="asset-name" [title]="asset.name">{{ asset.name }}</h5>
+              <div class="asset-meta">
+                <span class="asset-size">{{ formatFileSize(asset.size) }}</span>
+                <span class="asset-date">{{ formatDate(asset.uploadedAt) }}</span>
+              </div>
+              <div class="asset-dimensions" *ngIf="asset.dimensions">
+                {{ asset.dimensions.width }} × {{ asset.dimensions.height }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- List View -->
+        <div class="assets-list" *ngIf="viewMode === 'list'">
+          <div 
+            *ngFor="let asset of paginatedAssets"
+            class="asset-list-item"
+            [class.selected]="isAssetSelected(asset)"
+            [class.disabled]="!isAssetSelected(asset) && isMaxSelectionsReached"
+            (click)="selectAsset(asset)"
+          >
+            <div class="asset-thumbnail">
+              <img 
+                *ngIf="asset.type === AssetType.IMAGE" 
+                [src]="asset.url" 
+                [alt]="asset.name"
+                class="thumbnail-image"
+                loading="lazy"
+              >
+              <div 
+                *ngIf="asset.type !== AssetType.IMAGE"
+                class="thumbnail-placeholder"
+                [style.background-color]="getAssetTypeColor(asset.type)"
+              >
+                <span class="thumbnail-icon">{{ getAssetTypeIcon(asset.type) }}</span>
+              </div>
+            </div>
+            
+            <div class="asset-details">
+              <h5 class="asset-name">{{ asset.name }}</h5>
+              <div class="asset-meta">
+                <span class="asset-type">{{ asset.type | titlecase }}</span>
+                <span class="asset-size">{{ formatFileSize(asset.size) }}</span>
+                <span class="asset-date">{{ formatDate(asset.uploadedAt) }}</span>
+              </div>
+              <div class="asset-dimensions" *ngIf="asset.dimensions">
+                Dimensions: {{ asset.dimensions.width }} × {{ asset.dimensions.height }}
+              </div>
+            </div>
+            
+            <div class="asset-actions">
+              <div class="selection-checkbox" *ngIf="config.multiSelect">
+                <i 
+                  class="bi"
+                  [class.bi-square]="!isAssetSelected(asset)"
+                  [class.bi-check-square-fill]="isAssetSelected(asset)"
+                ></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container" *ngIf="totalPages > 1">
+          <div class="pagination">
+            <button 
+              class="page-btn"
+              [disabled]="currentPage === 1"
+              (click)="goToPage(currentPage - 1)"
+            >
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            
+            <span class="page-info">
+              Page {{ currentPage }} of {{ totalPages }}
+            </span>
+            
+            <button 
+              class="page-btn"
+              [disabled]="currentPage === totalPages"
+              (click)="goToPage(currentPage + 1)"
+            >
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="asset-picker-footer" *ngIf="config.multiSelect">
+      <div class="footer-info">
+        <span *ngIf="selectionCount > 0">{{ selectionCount }} asset(s) selected</span>
+      </div>
+      <div class="footer-actions">
+        <button class="btn btn-secondary" (click)="close()">
+          Cancel
+        </button>
+        <button 
+          class="btn btn-primary"
+          (click)="confirmSelection()"
+          [disabled]="selectionCount === 0"
+        >
+          <i class="bi bi-check"></i>
+          Select {{ selectionCount > 0 ? '(' + selectionCount + ')' : '' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Upload Progress -->
+    <div class="upload-progress-container" *ngIf="uploadProgress.size > 0">
+      <div class="upload-progress-list">
+        <div 
+          *ngFor="let progress of uploadProgress | keyvalue"
+          class="upload-progress-item"
+        >
+          <div class="progress-bar">
+            <div 
+              class="progress-fill"
+              [style.width.%]="progress.value"
+            ></div>
+          </div>
+          <span class="progress-text">{{ progress.value }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drag and Drop Overlay -->
+    <div class="drag-drop-overlay" [class.active]="isDragOver" *ngIf="config.showUpload !== false">
+      <div class="drag-drop-content">
+        <i class="bi bi-cloud-upload"></i>
+        <h4>Drop files here to upload</h4>
+      </div>
+    </div>
+
+    <!-- Hidden File Input -->
+    <input 
+      #fileInput
+      type="file" 
+      class="hidden-file-input"
+      multiple
+      [accept]="config.allowedTypes ? config.allowedTypes.map(type => type + '/*').join(',') : '*/*'"
+      (change)="onFileInputChange($event)"
+    >
+  </div>
+</div>
+
+<!-- Drop Zone for Drag and Drop -->
+<div 
+  class="drop-zone"
+  [class.active]="isVisible && config.showUpload !== false"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+></div>

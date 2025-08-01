@@ -1,0 +1,333 @@
+<!-- Wizard Overlay -->
+<div class="wizard-overlay" (click)="cancelWizard()">
+  <div class="wizard-container" (click)="$event.stopPropagation()">
+    
+    <!-- Wizard Header -->
+    <div class="wizard-header">
+      <div class="header-content">
+        <h2 class="wizard-title">
+          <i class="bi bi-magic"></i>
+          Template Setup Wizard
+        </h2>
+        <p class="wizard-subtitle">Let's customize your {{ template.name }} template</p>
+      </div>
+      <button class="btn btn-outline-secondary" (click)="cancelWizard()" title="Cancel">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="wizard-progress">
+      <div class="progress-steps">
+        <div 
+          *ngFor="let step of steps; let i = index"
+          class="progress-step"
+          [ngClass]="{ 
+            'active': i === currentStep, 
+            'completed': step.isCompleted,
+            'upcoming': i > currentStep 
+          }"
+        >
+          <div class="step-indicator">
+            <i *ngIf="step.isCompleted" class="bi bi-check-lg"></i>
+            <span *ngIf="!step.isCompleted">{{ i + 1 }}</span>
+          </div>
+          <div class="step-info">
+            <h4 class="step-title">{{ step.title }}</h4>
+            <p class="step-description">{{ step.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wizard Content -->
+    <div class="wizard-content">
+      
+      <!-- Step 1: Project Setup -->
+      <div *ngIf="currentStep === 0" class="wizard-step">
+        <div class="step-header">
+          <h3>Project Setup</h3>
+          <p>Choose how you want to organize your work</p>
+        </div>
+
+        <div class="project-options">
+          <div class="option-card" [ngClass]="{ active: projectSetup.createNew }">
+            <label class="option-label">
+              <input 
+                type="radio" 
+                name="projectOption" 
+                [value]="true" 
+                [(ngModel)]="projectSetup.createNew"
+                class="option-radio"
+              >
+              <div class="option-content">
+                <div class="option-icon">
+                  <i class="bi bi-plus-circle"></i>
+                </div>
+                <h4>Create New Project</h4>
+                <p>Start fresh with a new project</p>
+              </div>
+            </label>
+          </div>
+
+          <div class="option-card" [ngClass]="{ active: !projectSetup.createNew }">
+            <label class="option-label">
+              <input 
+                type="radio" 
+                name="projectOption" 
+                [value]="false" 
+                [(ngModel)]="projectSetup.createNew"
+                class="option-radio"
+              >
+              <div class="option-content">
+                <div class="option-icon">
+                  <i class="bi bi-folder"></i>
+                </div>
+                <h4>Use Existing Project</h4>
+                <p>Add this template to an existing project</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- New Project Form -->
+        <div *ngIf="projectSetup.createNew" class="project-form">
+          <div class="form-group">
+            <label for="projectName">Project Name</label>
+            <input 
+              id="projectName"
+              type="text" 
+              class="form-control"
+              [(ngModel)]="projectSetup.name"
+              placeholder="Enter project name"
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label for="projectDescription">Description (Optional)</label>
+            <textarea 
+              id="projectDescription"
+              class="form-control"
+              [(ngModel)]="projectSetup.description"
+              placeholder="Describe your project"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Existing Project Selection -->
+        <div *ngIf="!projectSetup.createNew" class="project-selection">
+          <div class="form-group">
+            <label for="existingProject">Select Project</label>
+            <select 
+              id="existingProject"
+              class="form-control"
+              [(ngModel)]="projectSetup.selectedProjectId"
+              required
+            >
+              <option value="">Choose a project...</option>
+              <option *ngFor="let project of availableProjects" [value]="project.id">
+                {{ project.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Template Customization -->
+      <div *ngIf="currentStep === 1" class="wizard-step">
+        <div class="step-header">
+          <h3>Template Customization</h3>
+          <p>Personalize your template with your content and style</p>
+        </div>
+
+        <div class="customization-sections">
+          
+          <!-- Content Customization -->
+          <div class="customization-section">
+            <h4>Content</h4>
+            <div class="form-row">
+              <div class="form-group" *ngIf="isHeroTemplate()">
+                <label for="headerText">Main Heading</label>
+                <input 
+                  id="headerText"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="customization.headerText"
+                  placeholder="Enter your main heading"
+                >
+              </div>
+              <div class="form-group" *ngIf="isHeroTemplate()">
+                <label for="heroSubheading">Subheading</label>
+                <input 
+                  id="heroSubheading"
+                  type="text" 
+                  class="form-control"
+                  [(ngModel)]="customization.heroSubheading"
+                  placeholder="Enter your subheading"
+                >
+              </div>
+            </div>
+            <div class="form-group" *ngIf="isHeroTemplate()">
+              <label for="heroImage">Hero Image</label>
+              <app-asset-input
+                [allowedTypes]="allowedImageTypes"
+                [selectedAsset]="customization.heroImage"
+                placeholder="Select a hero image"
+                label="Hero Image"
+                (assetChanged)="onHeroImageSelected($event)"
+              ></app-asset-input>
+            </div>
+          </div>
+
+          <!-- Style Customization -->
+          <div class="customization-section">
+            <h4>Style</h4>
+            
+            <!-- Color Scheme -->
+            <div class="style-group">
+              <label>Color Scheme</label>
+              <div class="color-schemes">
+                <div 
+                  *ngFor="let scheme of colorSchemes"
+                  class="color-scheme-card"
+                  [ngClass]="{ active: customization.colorScheme === scheme.id }"
+                  (click)="customization.colorScheme = scheme.id"
+                >
+                  <div class="color-preview">
+                    <div class="color-primary" [style.background-color]="scheme.primary"></div>
+                    <div class="color-secondary" [style.background-color]="scheme.secondary"></div>
+                  </div>
+                  <span class="scheme-name">{{ scheme.name }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Font Style -->
+            <div class="style-group">
+              <label>Font Style</label>
+              <div class="font-styles">
+                <div 
+                  *ngFor="let font of fontStyles"
+                  class="font-style-card"
+                  [ngClass]="{ active: customization.fontStyle === font.id }"
+                  (click)="customization.fontStyle = font.id"
+                >
+                  <div class="font-preview">
+                    <h5 [style.font-family]="font.heading">{{ font.name }}</h5>
+                    <p [style.font-family]="font.body">Sample text</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Review -->
+      <div *ngIf="currentStep === 2" class="wizard-step">
+        <div class="step-header">
+          <h3>Review & Launch</h3>
+          <p>Review your settings before launching the editor</p>
+        </div>
+
+        <div class="review-sections">
+          
+          <!-- Project Review -->
+          <div class="review-section">
+            <h4>Project</h4>
+            <div class="review-item">
+              <span class="review-label">Type:</span>
+              <span class="review-value">{{ projectSetup.createNew ? 'New Project' : 'Existing Project' }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Name:</span>
+              <span class="review-value">{{ projectSetup.name }}</span>
+            </div>
+            <div class="review-item" *ngIf="projectSetup.description">
+              <span class="review-label">Description:</span>
+              <span class="review-value">{{ projectSetup.description }}</span>
+            </div>
+          </div>
+
+          <!-- Template Review -->
+          <div class="review-section">
+            <h4>Template</h4>
+            <div class="template-preview-card">
+              <img [src]="template.previewImage" [alt]="template.name" class="template-preview-img">
+              <div class="template-info">
+                <h5>{{ template.name }}</h5>
+                <p>{{ template.description }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Customization Review -->
+          <div class="review-section">
+            <h4>Customization</h4>
+            <div class="review-item" *ngIf="customization.headerText">
+              <span class="review-label">Main Heading:</span>
+              <span class="review-value">{{ customization.headerText }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Color Scheme:</span>
+              <span class="review-value">{{ getSelectedColorScheme()?.name }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Font Style:</span>
+              <span class="review-value">{{ getSelectedFontStyle()?.name }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wizard Footer -->
+    <div class="wizard-footer">
+      <div class="footer-actions">
+        <button 
+          *ngIf="currentStep > 0"
+          class="btn btn-outline-secondary"
+          (click)="previousStep()"
+          [disabled]="isProcessing"
+        >
+          <i class="bi bi-arrow-left"></i>
+          Previous
+        </button>
+        
+        <div class="spacer"></div>
+        
+        <button 
+          class="btn btn-outline-secondary"
+          (click)="cancelWizard()"
+          [disabled]="isProcessing"
+        >
+          Cancel
+        </button>
+        
+        <button 
+          *ngIf="currentStep < steps.length - 1"
+          class="btn btn-primary"
+          (click)="nextStep()"
+          [disabled]="!isCurrentStepValid() || isProcessing"
+        >
+          Next
+          <i class="bi bi-arrow-right"></i>
+        </button>
+        
+        <button 
+          *ngIf="currentStep === steps.length - 1"
+          class="btn btn-success"
+          (click)="completeWizard()"
+          [disabled]="!isCurrentStepValid() || isProcessing"
+        >
+          <span *ngIf="isProcessing" class="spinner-border spinner-border-sm me-2" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </span>
+          <i *ngIf="!isProcessing" class="bi bi-rocket"></i>
+          {{ isProcessing ? 'Setting up...' : 'Launch Editor' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

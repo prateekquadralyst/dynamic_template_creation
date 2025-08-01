@@ -9,6 +9,14 @@
         <span>Website Builder</span>
       </div>
       <div class="project-info">
+        <button
+          class="back-to-gallery-btn"
+          (click)="navigateToGallery()"
+          title="Back to Template Gallery"
+        >
+          <i class="bi bi-arrow-left"></i>
+          Gallery
+        </button>
         <div class="project-name" [title]="getCurrentProjectName()">
           {{ getCurrentProjectName() }}
           <span
@@ -461,6 +469,15 @@
           <i class="bi bi-plus"></i>
           Create Template
         </button>
+        <button
+          class="gallery-btn"
+          *ngIf="activeTemplateType !== 'style'"
+          (click)="openTemplateGallery()"
+          title="Browse Template Gallery"
+        >
+          <i class="bi bi-grid-3x3"></i>
+          Gallery
+        </button>
         <button class="close-panel-btn" (click)="closeTemplatePanel()">
           <i class="bi bi-x-lg"></i>
         </button>
@@ -681,6 +698,17 @@
           Preview
         </button>
 
+        <!-- Responsive Sidebar Toggle -->
+        <button 
+          class="responsive-sidebar-btn"
+          (click)="toggleResponsiveSidebar()"
+          [ngClass]="{ active: showResponsiveSidebar }"
+          title="Toggle Responsive Sidebar"
+        >
+          <i class="bi bi-layout-sidebar"></i>
+          Sidebar
+        </button>
+
         <!-- Toggle editor button -->
         <button class="toggle-panel-btn" (click)="toggleEditorPanel()">
           <i
@@ -733,6 +761,27 @@
 
   <!-- Template Builder Modal -->
   <app-template-builder #templateBuilder></app-template-builder>
+
+  <!-- Template Gallery Modal -->
+  <app-template-gallery
+    *ngIf="showTemplateGallery"
+    (templateSelected)="onTemplateGallerySelection($event)"
+    (closeGallery)="closeTemplateGallery()"
+  ></app-template-gallery>
+
+  <!-- Responsive Sidebar -->
+  <app-responsive-sidebar
+    *ngIf="showResponsiveSidebar"
+    [templates]="getTemplatesForActiveType()"
+    [selectedTemplateId]="getSelectedTemplateIdForActiveType()"
+    [activeTemplateType]="getActiveTemplateTypeForSidebar()"
+    [showTemplatePreview]="true"
+    [enableKeyboardNavigation]="true"
+    (templateSelected)="onSidebarTemplateSelected($event)"
+    (templatePreview)="onSidebarTemplatePreview($event)"
+    (sidebarStateChanged)="onSidebarStateChanged($event)"
+    (sidebarClosed)="onSidebarClosed()"
+  ></app-responsive-sidebar>
 
   <!-- CSS Injector for Global Styles -->
   <app-css-injector></app-css-injector>

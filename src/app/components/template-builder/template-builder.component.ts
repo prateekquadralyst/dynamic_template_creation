@@ -2,6 +2,8 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
+import { AssetInputComponent } from '../asset-picker/asset-input.component';
+import { Asset, AssetType } from '../../models/asset.interface';
 import { 
   CustomTemplate, 
   TemplateVariable, 
@@ -18,7 +20,7 @@ import { validateTemplate } from '../../utils/template-validation.util';
 @Component({
   selector: 'app-template-builder',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AssetInputComponent],
   templateUrl: './template-builder.component.html',
   styleUrls: ['./template-builder.component.css']
 })
@@ -604,5 +606,40 @@ h1 {
       default:
         return type;
     }
+  }
+
+  /**
+   * Handle asset selection for image variables
+   */
+  onVariableAssetSelected(asset: Asset | null): void {
+    if (asset) {
+      this.newVariable.defaultValue = asset.url;
+      // Store asset reference for future use
+      (this.newVariable as any).selectedAsset = asset;
+    } else {
+      this.newVariable.defaultValue = '';
+      (this.newVariable as any).selectedAsset = null;
+    }
+  }
+
+  /**
+   * Get selected asset for current variable
+   */
+  getSelectedAssetForVariable(): Asset | null {
+    return (this.newVariable as any).selectedAsset || null;
+  }
+
+  /**
+   * Get allowed asset types for image variables
+   */
+  get allowedImageTypes(): AssetType[] {
+    return [AssetType.IMAGE];
+  }
+
+  /**
+   * Check if current variable is an image type
+   */
+  isImageVariable(): boolean {
+    return this.newVariable.type === VariableType.IMAGE;
   }
 }

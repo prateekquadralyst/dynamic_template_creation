@@ -1,0 +1,530 @@
+<div class="asset-manager">
+  <!-- Header -->
+  <div class="asset-manager-header">
+    <div class="header-left">
+      <h2>Asset Manager</h2>
+      <span class="asset-count">{{ filteredAssets.length }} assets</span>
+    </div>
+
+    <div class="header-right">
+      <!-- View Mode Toggle -->
+      <div class="view-mode-toggle">
+        <button
+          [class.active]="viewMode === 'grid'"
+          (click)="setViewMode('grid')"
+          title="Grid View"
+        >
+          <i class="icon-grid"></i>
+        </button>
+        <button
+          [class.active]="viewMode === 'list'"
+          (click)="setViewMode('list')"
+          title="List View"
+        >
+          <i class="icon-list"></i>
+        </button>
+      </div>
+
+      <!-- Upload Button -->
+      <button class="btn btn-primary upload-btn" (click)="triggerFileInput()">
+        <i class="icon-upload"></i>
+        Upload Assets
+      </button>
+    </div>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="search-filters-section">
+    <div class="search-bar">
+      <input
+        type="text"
+        placeholder="Search assets..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange($event)"
+        class="search-input"
+      />
+      <i class="icon-search"></i>
+    </div>
+
+    <div class="filter-controls">
+      <button
+        class="btn btn-secondary filter-toggle"
+        [class.active]="showFilters"
+        (click)="showFilters = !showFilters"
+      >
+        <i class="icon-filter"></i>
+        Filters
+      </button>
+
+      <div class="sort-controls">
+        <select [(ngModel)]="sortBy" (change)="onSortChange(sortBy, sortOrder)">
+          <option [value]="AssetSortBy.UPLOAD_DATE">Upload Date</option>
+          <option [value]="AssetSortBy.NAME">Name</option>
+          <option [value]="AssetSortBy.SIZE">Size</option>
+          <option [value]="AssetSortBy.TYPE">Type</option>
+          <option [value]="AssetSortBy.USAGE_COUNT">Usage</option>
+        </select>
+
+        <button
+          class="btn btn-icon sort-order"
+          (click)="
+            onSortChange(
+              sortBy,
+              sortOrder === SortOrder.ASC ? SortOrder.DESC : SortOrder.ASC
+            )
+          "
+        >
+          <i
+            [class]="
+              sortOrder === SortOrder.ASC ? 'icon-sort-asc' : 'icon-sort-desc'
+            "
+          ></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Filters Panel -->
+  <div class="filters-panel" [class.show]="showFilters">
+    <div class="filter-group">
+      <label>Asset Type</label>
+      <div class="filter-chips">
+        <button
+          *ngFor="
+            let type of [
+              AssetType.IMAGE,
+              AssetType.VIDEO,
+              AssetType.AUDIO,
+              AssetType.DOCUMENT,
+              AssetType.FONT,
+              AssetType.ICON,
+              AssetType.OTHER
+            ]
+          "
+          class="filter-chip"
+          [class.active]="activeFilters.type === type"
+          (click)="toggleFilter(type)"
+        >
+          <span class="type-icon">{{ getAssetTypeIcon(type) }}</span>
+          {{ type }}
+        </button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label>Tags</label>
+      <div class="filter-chips">
+        <button
+          *ngFor="let tag of availableTags"
+          class="filter-chip"
+          [class.active]="activeFilters.tags.includes(tag)"
+          (click)="toggleTagFilter(tag)"
+        >
+          {{ tag }}
+        </button>
+      </div>
+    </div>
+
+    <div class="filter-actions">
+      <button class="btn btn-secondary" (click)="clearFilters()">
+        Clear All
+      </button>
+    </div>
+  </div>
+
+  <!-- Selection Actions -->
+  <div class="selection-actions" *ngIf="hasSelection">
+    <div class="selection-info">
+      {{ selectedAssets.size }} asset(s) selected
+    </div>
+    <div class="selection-buttons">
+      <button class="btn btn-secondary" (click)="clearSelection()">
+        Clear Selection
+      </button>
+      <button class="btn btn-secondary" (click)="selectAllAssets()">
+        Select All
+      </button>
+      <button class="btn btn-danger" (click)="deleteSelectedAssets()">
+        Delete Selected
+      </button>
+    </div>
+  </div>
+
+  <!-- Upload Progress -->
+  <div class="upload-progress" *ngIf="uploadProgress.size > 0">
+    <div
+      *ngFor="let progress of uploadProgress | keyvalue"
+      class="progress-item"
+    >
+      <div class="progress-bar">
+        <div class="progress-fill" [style.width.%]="progress.value"></div>
+      </div>
+      <span class="progress-text">{{ progress.value }}%</span>
+    </div>
+  </div>
+
+  <!-- Asset Grid/List -->
+  <div class="asset-content" [class.loading]="isLoading">
+    <div *ngIf="isLoading" class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Loading assets...</p>
+    </div>
+
+    <!-- Drag and Drop Zone -->
+    <div
+      #dropZone
+      class="drop-zone"
+      [class.drag-over]="isDragOver"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+      *ngIf="!isLoading"
+    >
+      <!-- Grid View -->
+      <div class="asset-grid" *ngIf="viewMode === 'grid'">
+        <div
+          *ngFor="let asset of paginatedAssets"
+          class="asset-card"
+          [class.selected]="selectedAssets.has(asset.id)"
+          (click)="toggleAssetSelection(asset.id)"
+        >
+          <div class="asset-preview">
+            <img
+              *ngIf="asset.type === AssetType.IMAGE"
+              [src]="asset.url"
+              [alt]="asset.name"
+              loading="lazy"
+            />
+            <div
+              *ngIf="asset.type !== AssetType.IMAGE"
+              class="asset-placeholder"
+              [style.background-color]="getAssetTypeColor(asset.type)"
+            >
+              <span class="type-icon">{{ getAssetTypeIcon(asset.type) }}</span>
+            </div>
+
+            <div class="asset-overlay">
+              <button
+                class="btn btn-icon overlay-btn"
+                (click)="showAssetDetailsModal(asset); $event.stopPropagation()"
+                title="View Details"
+              >
+                <i class="icon-info"></i>
+              </button>
+              <button
+                class="btn btn-icon overlay-btn delete-btn"
+                (click)="deleteAsset(asset.id); $event.stopPropagation()"
+                title="Delete"
+              >
+                <i class="icon-delete"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="asset-info">
+            <h4 class="asset-name" [title]="asset.name">{{ asset.name }}</h4>
+            <div class="asset-meta">
+              <span class="asset-size">{{ formatFileSize(asset.size) }}</span>
+              <span class="asset-type">{{ asset.type }}</span>
+            </div>
+            <div class="asset-tags" *ngIf="asset.tags.length > 0">
+              <span *ngFor="let tag of asset.tags.slice(0, 3)" class="tag">{{
+                tag
+              }}</span>
+              <span *ngIf="asset.tags.length > 3" class="tag-more"
+                >+{{ asset.tags.length - 3 }}</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div
+          class="empty-state"
+          *ngIf="paginatedAssets.length === 0 && !isLoading"
+        >
+          <div class="empty-icon">📁</div>
+          <h3>No assets found</h3>
+          <p
+            *ngIf="
+              searchQuery || activeFilters.type || activeFilters.tags.length > 0
+            "
+          >
+            Try adjusting your search or filters
+          </p>
+          <p
+            *ngIf="
+              !searchQuery &&
+              !activeFilters.type &&
+              activeFilters.tags.length === 0
+            "
+          >
+            Upload your first asset to get started
+          </p>
+          <button class="btn btn-primary" (click)="triggerFileInput()">
+            Upload Assets
+          </button>
+        </div>
+      </div>
+
+      <!-- List View -->
+      <div class="asset-list" *ngIf="viewMode === 'list'">
+        <div class="list-header">
+          <div class="col-name">Name</div>
+          <div class="col-type">Type</div>
+          <div class="col-size">Size</div>
+          <div class="col-date">Upload Date</div>
+          <div class="col-usage">Usage</div>
+          <div class="col-actions">Actions</div>
+        </div>
+
+        <div
+          *ngFor="let asset of paginatedAssets"
+          class="list-item"
+          [class.selected]="selectedAssets.has(asset.id)"
+          (click)="toggleAssetSelection(asset.id)"
+        >
+          <div class="col-name">
+            <div class="asset-preview-small">
+              <img
+                *ngIf="asset.type === AssetType.IMAGE"
+                [src]="asset.url"
+                [alt]="asset.name"
+              />
+              <div
+                *ngIf="asset.type !== AssetType.IMAGE"
+                class="asset-placeholder-small"
+                [style.background-color]="getAssetTypeColor(asset.type)"
+              >
+                <span>{{ getAssetTypeIcon(asset.type) }}</span>
+              </div>
+            </div>
+            <div class="asset-name-info">
+              <span class="name" [title]="asset.name">{{ asset.name }}</span>
+              <div class="tags" *ngIf="asset.tags.length > 0">
+                <span *ngFor="let tag of asset.tags.slice(0, 2)" class="tag">{{
+                  tag
+                }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-type">
+            <span
+              class="type-badge"
+              [style.background-color]="getAssetTypeColor(asset.type)"
+            >
+              {{ asset.type }}
+            </span>
+          </div>
+
+          <div class="col-size">{{ formatFileSize(asset.size) }}</div>
+          <div class="col-date">{{ formatDate(asset.uploadedAt) }}</div>
+          <div class="col-usage">{{ asset.usageCount }}</div>
+
+          <div class="col-actions">
+            <button
+              class="btn btn-icon"
+              (click)="showAssetDetailsModal(asset); $event.stopPropagation()"
+              title="View Details"
+            >
+              <i class="icon-info"></i>
+            </button>
+            <button
+              class="btn btn-icon delete-btn"
+              (click)="deleteAsset(asset.id); $event.stopPropagation()"
+              title="Delete"
+            >
+              <i class="icon-delete"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Empty State for List -->
+        <div
+          class="empty-state"
+          *ngIf="paginatedAssets.length === 0 && !isLoading"
+        >
+          <div class="empty-icon">📁</div>
+          <h3>No assets found</h3>
+          <p
+            *ngIf="
+              searchQuery || activeFilters.type || activeFilters.tags.length > 0
+            "
+          >
+            Try adjusting your search or filters
+          </p>
+          <p
+            *ngIf="
+              !searchQuery &&
+              !activeFilters.type &&
+              activeFilters.tags.length === 0
+            "
+          >
+            Upload your first asset to get started
+          </p>
+          <button class="btn btn-primary" (click)="triggerFileInput()">
+            Upload Assets
+          </button>
+        </div>
+      </div>
+
+      <!-- Drop Zone Overlay -->
+      <div class="drop-overlay" *ngIf="isDragOver">
+        <div class="drop-message">
+          <i class="icon-upload-cloud"></i>
+          <h3>Drop files here to upload</h3>
+          <p>Supported formats: Images, Videos, Audio, Documents</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button
+      class="btn btn-icon"
+      [disabled]="currentPage === 1"
+      (click)="goToPage(currentPage - 1)"
+    >
+      <i class="icon-chevron-left"></i>
+    </button>
+
+    <span class="page-info"> Page {{ currentPage }} of {{ totalPages }} </span>
+
+    <button
+      class="btn btn-icon"
+      [disabled]="currentPage === totalPages"
+      (click)="goToPage(currentPage + 1)"
+    >
+      <i class="icon-chevron-right"></i>
+    </button>
+  </div>
+
+  <!-- Hidden File Input -->
+  <input
+    #fileInput
+    type="file"
+    multiple
+    accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+    (change)="onFileInputChange($event)"
+    style="display: none"
+  />
+</div>
+
+<!-- Asset Details Modal -->
+<div
+  class="modal-overlay"
+  *ngIf="showAssetDetails"
+  (click)="closeAssetDetails()"
+>
+  <div class="modal asset-details-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Asset Details</h3>
+      <button class="btn btn-icon close-btn" (click)="closeAssetDetails()">
+        <i class="icon-close"></i>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedAssetForDetails">
+      <div class="asset-preview-large">
+        <img
+          *ngIf="selectedAssetForDetails.type === AssetType.IMAGE"
+          [src]="selectedAssetForDetails.url"
+          [alt]="selectedAssetForDetails.name"
+        />
+        <div
+          *ngIf="selectedAssetForDetails.type !== AssetType.IMAGE"
+          class="asset-placeholder-large"
+          [style.background-color]="
+            getAssetTypeColor(selectedAssetForDetails.type)
+          "
+        >
+          <span class="type-icon">{{
+            getAssetTypeIcon(selectedAssetForDetails.type)
+          }}</span>
+        </div>
+      </div>
+
+      <div class="asset-details-info">
+        <div class="detail-group">
+          <label>Name</label>
+          <span>{{ selectedAssetForDetails.name }}</span>
+        </div>
+
+        <div class="detail-group">
+          <label>Type</label>
+          <span
+            class="type-badge"
+            [style.background-color]="
+              getAssetTypeColor(selectedAssetForDetails.type)
+            "
+          >
+            {{ selectedAssetForDetails.type }}
+          </span>
+        </div>
+
+        <div class="detail-group">
+          <label>Size</label>
+          <span>{{ formatFileSize(selectedAssetForDetails.size) }}</span>
+        </div>
+
+        <div class="detail-group" *ngIf="selectedAssetForDetails.dimensions">
+          <label>Dimensions</label>
+          <span
+            >{{ selectedAssetForDetails.dimensions.width }} ×
+            {{ selectedAssetForDetails.dimensions.height }}</span
+          >
+        </div>
+
+        <div class="detail-group">
+          <label>Upload Date</label>
+          <span>{{ formatDate(selectedAssetForDetails.uploadedAt) }}</span>
+        </div>
+
+        <div class="detail-group">
+          <label>Usage Count</label>
+          <span>{{ selectedAssetForDetails.usageCount }}</span>
+        </div>
+
+        <div
+          class="detail-group"
+          *ngIf="selectedAssetForDetails.tags.length > 0"
+        >
+          <label>Tags</label>
+          <div class="tags-list">
+            <span
+              *ngFor="let tag of selectedAssetForDetails.tags"
+              class="tag"
+              >{{ tag }}</span
+            >
+          </div>
+        </div>
+
+        <!-- Usage Information -->
+        <div class="detail-group" *ngIf="selectedAssetUsage.length > 0">
+          <label>Used In</label>
+          <div class="usage-list">
+            <div *ngFor="let usage of selectedAssetUsage" class="usage-item">
+              <span class="project">{{ usage.projectId }}</span>
+              <span class="section">{{ usage.sectionId }}</span>
+              <span class="variable">{{ usage.variableName }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeAssetDetails()">
+        Close
+      </button>
+      <button
+        class="btn btn-danger"
+        (click)="deleteAsset(selectedAssetForDetails!.id); closeAssetDetails()"
+      >
+        Delete Asset
+      </button>
+    </div>
+  </div>
+</div>

@@ -117,6 +117,29 @@
     background-color: rgba(255, 255, 255, 0.15);
     color: white;
   }
+
+  .back-to-gallery-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 6px;
+    transition: var(--transition);
+    margin-right: 12px;
+  }
+  
+  .back-to-gallery-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+    transform: translateY(-1px);
+  }
   
   .logo {
     display: flex;
@@ -582,6 +605,35 @@
     background-color: var(--primary-color);
     color: white;
   }
+
+  /* Responsive Sidebar Button */
+  .responsive-sidebar-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-right: 10px;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .responsive-sidebar-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+  }
+
+  .responsive-sidebar-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 0 0 2px var(--primary-light);
+  }
   
   .preview-content {
     flex: 1;
@@ -847,6 +899,26 @@
 
   .create-template-btn:hover {
     background-color: #218838;
+    transform: translateY(-1px);
+  }
+
+  .gallery-btn {
+    background-color: #6f42c1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .gallery-btn:hover {
+    background-color: #5a32a3;
     transform: translateY(-1px);
   }
 

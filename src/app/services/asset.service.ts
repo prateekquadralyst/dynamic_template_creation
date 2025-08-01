@@ -13,6 +13,7 @@ import {
   SortOrder
 } from '../models/asset.interface';
 import { DatabaseService } from './database.service';
+import { AssetOptimizationService } from './asset-optimization.service';
 
 @Injectable({
   providedIn: 'root'
@@ -22,7 +23,10 @@ export class AssetService implements IAssetService {
   private assetUpdateSubjects = new Map<string, BehaviorSubject<Asset>>();
   private processingJobSubjects = new Map<string, BehaviorSubject<AssetProcessingJob>>();
 
-  constructor(private databaseService: DatabaseService) {
+  constructor(
+    private databaseService: DatabaseService,
+    private assetOptimizationService: AssetOptimizationService
+  ) {
     this.loadAssets();
   }
 
@@ -233,29 +237,36 @@ export class AssetService implements IAssetService {
     await Promise.all(deletePromises);
   }
 
-  // Asset optimization and processing (placeholder implementations)
+  // Asset optimization and processing
   async optimizeAsset(id: string): Promise<AssetProcessingJob> {
-    const job: AssetProcessingJob = {
-      id: 'job_' + Date.now(),
-      assetId: id,
-      type: ProcessingType.OPTIMIZATION,
-      status: ProcessingStatus.PENDING,
-      progress: 0,
-      startedAt: new Date()
-    };
+    const asset = await this.getAsset(id);
+    if (!asset) {
+      throw new Error(`Asset with ID ${id} not found`);
+    }
 
-    // Create subject for this job
-    this.processingJobSubjects.set(job.id, new BehaviorSubject(job));
+    try {
+      const job = await this.assetOptimizationService.optimizeAsset(asset);
+      
+      // Subscribe to job updates and update our local subject
+      const jobSubject = new BehaviorSubject(job);
+      this.processingJobSubjects.set(job.id, jobSubject);
+      
+      this.assetOptimizationService.getProcessingJobUpdates(job.id).subscribe(updatedJob => {
+        jobSubject.next(updatedJob);
+        
+        // If job is completed, update the asset with optimized versions
+        if (updatedJob.status === ProcessingStatus.COMPLETED && updatedJob.result) {
+          this.updateAsset(id, {
+            optimizedVersions: updatedJob.result.outputAssets
+          });
+        }
+      });
 
-    // Simulate processing
-    setTimeout(() => {
-      job.status = ProcessingStatus.COMPLETED;
-      job.progress = 100;
-      job.completedAt = new Date();
-      this.processingJobSubjects.get(job.id)?.next(job);
-    }, 2000);
-
-    return job;
+      return job;
+    } catch (error) {
+      console.error('Failed to start asset optimization:', error);
+      throw new Error('Failed to start asset optimization');
+    }
   }
 
   async generateThumbnails(id: string): Promise<AssetProcessingJob> {
@@ -339,8 +350,38 @@ export class AssetService implements IAssetService {
   }
 
   async replaceAsset(oldAssetId: string, newAssetId: string): Promise<void> {
-    // Placeholder implementation
-    console.log(`Replace asset ${oldAssetId} with ${newAssetId}`);
+    try {
+      const oldAsset = await this.getAsset(oldAssetId);
+      const newAsset = await this.getAsset(newAssetId);
+      
+      if (!oldAsset || !newAsset) {
+        throw new Error('Asset not found');
+      }
+
+      // Get all usage locations for the old asset
+      const usageLocations = await this.getAssetUsage(oldAssetId);
+      
+      // Update usage tracking
+      for (const usage of usageLocations) {
+        // Remove usage from old asset
+        await this.updateAsset(oldAssetId, {
+          usageCount: Math.max(0, oldAsset.usageCount - 1)
+        });
+        
+        // Add usage to new asset
+        await this.updateAsset(newAssetId, {
+          usageCount: newAsset.usageCount + 1
+        });
+        
+        // Track new usage
+        await this.trackAssetUsage(newAssetId, usage.projectId, usage.sectionId, usage.variableName);
+      }
+
+      console.log(`Successfully replaced asset ${oldAssetId} with ${newAssetId} in ${usageLocations.length} locations`);
+    } catch (error) {
+      console.error('Failed to replace asset:', error);
+      throw new Error('Failed to replace asset');
+    }
   }
 
   // Asset organization

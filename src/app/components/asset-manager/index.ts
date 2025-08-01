@@ -1,0 +1,1 @@
+export { AssetManagerComponent } from './asset-manager.component';

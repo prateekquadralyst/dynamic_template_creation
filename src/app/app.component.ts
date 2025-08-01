@@ -7,13 +7,16 @@ import {
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { ActivatedRoute, Router } from "@angular/router";
 import { PreviewComponent } from "./preview/preview.component";
 import { FilterPipe } from "./pipes/filter.pipe";
 import { ProjectManagerComponent } from "./components/project-manager/project-manager.component";
 import { TemplateBuilderComponent } from "./components/template-builder/template-builder.component";
+import { TemplateGalleryComponent } from "./components/template-gallery/template-gallery.component";
 import { GlobalStylingControlsComponent } from "./components/global-styling-controls/global-styling-controls.component";
 import { CssInjectorComponent } from "./components/global-styling-controls/css-injector.component";
 import { CssEditorDemoComponent } from "./components/css-editor-demo/css-editor-demo.component";
+import { ResponsiveSidebarComponent, SidebarState } from "./components/responsive-sidebar/responsive-sidebar.component";
 import {
   TemplateService,
   HeroTemplateVariables,
@@ -49,9 +52,11 @@ interface SectionEnabled {
     FilterPipe,
     ProjectManagerComponent,
     TemplateBuilderComponent,
+    TemplateGalleryComponent,
     GlobalStylingControlsComponent,
     CssInjectorComponent,
     CssEditorDemoComponent,
+    ResponsiveSidebarComponent,
   ],
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.css"],
@@ -150,13 +155,28 @@ export class AppComponent implements OnInit, OnDestroy {
   currentProject: Project | null = null;
   showProjectManager = false;
   hasUnsavedChanges = false;
+  
+  // Template gallery state
+  showTemplateGallery = false;
+  
+  // Responsive sidebar state
+  showResponsiveSidebar = false;
+  sidebarState: SidebarState = {
+    isOpen: false,
+    isCollapsed: false,
+    activeTab: 'templates',
+    width: 320
+  };
+  
   private destroy$ = new Subject<void>();
   private autoSaveSubject = new Subject<void>();
 
   constructor(
     private templateService: TemplateService,
     private projectService: ProjectService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -169,6 +189,14 @@ export class AppComponent implements OnInit, OnDestroy {
     // Load available templates and styles first
     await this.loadAvailableTemplates();
     this.loadAvailableStyles();
+
+    // Check for route parameters to initialize with specific template
+    this.route.paramMap.subscribe(params => {
+      const templateId = params.get('templateId');
+      if (templateId) {
+        this.initializeWithTemplate(templateId);
+      }
+    });
 
     // Try to load the last opened project or create a default one
     await this.initializeProject();
@@ -975,6 +1003,179 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Responsive sidebar methods
+  
+  /**
+   * Toggle responsive sidebar
+   */
+  toggleResponsiveSidebar(): void {
+    this.showResponsiveSidebar = !this.showResponsiveSidebar;
+  }
+
+  /**
+   * Handle sidebar state change
+   */
+  onSidebarStateChanged(state: SidebarState): void {
+    this.sidebarState = { ...state };
+  }
+
+  /**
+   * Handle sidebar closed
+   */
+  onSidebarClosed(): void {
+    this.showResponsiveSidebar = false;
+  }
+
+  /**
+   * Handle template selection from sidebar
+   */
+  onSidebarTemplateSelected(template: TemplateSection): void {
+    // Determine the template type and select it
+    if (this.activeTemplateType) {
+      this.selectTemplate(this.activeTemplateType as any, template.id);
+    }
+  }
+
+  /**
+   * Handle template preview from sidebar
+   */
+  onSidebarTemplatePreview(template: TemplateSection): void {
+    // Show template preview
+    console.log('Preview template from sidebar:', template.name);
+  }
+
+  /**
+   * Get templates for current active type
+   */
+  getTemplatesForActiveType(): TemplateSection[] {
+    switch (this.activeTemplateType) {
+      case 'hero':
+        return this.availableHeroTemplates;
+      case 'features':
+        return this.availableFeaturesTemplates;
+      default:
+        return [];
+    }
+  }
+
+  /**
+   * Get selected template ID for current active type
+   */
+  getSelectedTemplateIdForActiveType(): string | null {
+    switch (this.activeTemplateType) {
+      case 'hero':
+        return this.selectedHeroTemplate;
+      case 'features':
+        return this.selectedFeaturesTemplate;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Get active template type for sidebar (maps to SectionType)
+   */
+  getActiveTemplateTypeForSidebar(): SectionType | null {
+    switch (this.activeTemplateType) {
+      case 'hero':
+        return SectionType.HERO;
+      case 'features':
+        return SectionType.FEATURES;
+      case 'testimonials':
+        return SectionType.TESTIMONIALS;
+      default:
+        return null;
+    }
+  }Builder(): void {
+    if (this.templateBuilder) {
+      this.templateBuilder.show();
+      this.closeTemplatePanel();
+    }
+  }
+
+  /**
+   * Open the template gallery
+   */
+  openTemplateGallery(): void {
+    this.showTemplateGallery = true;
+    this.closeTemplatePanel();
+  }
+
+  /**
+   * Close the template gallery
+   */
+  closeTemplateGallery(): void {
+    this.showTemplateGallery = false;
+  }
+
+  /**
+   * Navigate to gallery
+   */
+  navigateToGallery(): void {
+    this.router.navigate(['/']);
+  }
+
+  /**
+   * Handle template gallery selection
+   */
+  onTemplateGallerySelection(event: any): void {
+    // Handle template selection from gallery
+    this.closeTemplateGallery();
+  }
+
+  /**
+   * Initialize with specific template
+   */
+  private async initializeWithTemplate(templateId: string): Promise<void> {
+    // Find the template and set it as selected
+    const allTemplates = [...this.availableHeroTemplates, ...this.availableFeaturesTemplates];
+    const template = allTemplates.find(t => t.id === templateId);
+    
+    if (template) {
+      if (template.type === SectionType.HERO) {
+        this.selectedHeroTemplate = templateId;
+        this.templateService.setSelectedTemplate('hero', templateId);
+      } else if (template.type === SectionType.FEATURES) {
+        this.selectedFeaturesTemplate = templateId;
+        this.templateService.setSelectedTemplate('features', templateId);
+      }
+      
+      this.loadSelectedTemplates();
+    }
+  }
+
+  /**
+   * Create a new custom template
+   */
+  async createCustomTemplate(): Promise<void> {
+    try {
+      const templateName = prompt("Enter template name:");
+      if (!templateName) return;
+
+      const newTemplate = await this.templateService.createCustomTemplate({
+        name: templateName,
+        description: "Custom template",
+        type: SectionType.HERO, // Default type
+        html: "<div>Custom template content</div>",
+        css: "/* Custom styles */",
+        variables: [],
+        previewImage: "",
+        isCustom: true,
+        createdBy: "user",
+        tags: [],
+        dependencies: []
+      });
+
+      // Refresh the template list
+      await this.loadAvailableTemplates();
+
+      alert(`Template "${newTemplate.name}" created successfully!`);
+    } catch (error) {
+      console.error("Failed to create template:", error);
+      alert("Failed to create template.");
+    }
+  }
+
   /**
    * Import a template from file
    */
@@ -1087,7 +1288,7 @@ export class AppComponent implements OnInit, OnDestroy {
       // Refresh the template list
       await this.loadAvailableTemplates();
 
-      // If the deleted template was currently selected, switch to a default template
+      // If the deleted template was selected, switch to a default template
       if (this.selectedHeroTemplate === templateId) {
         const defaultTemplate = this.availableHeroTemplates.find(
           (t) => t.isBuiltIn

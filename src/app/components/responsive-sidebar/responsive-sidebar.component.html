@@ -1,0 +1,381 @@
+<!-- Mobile Overlay -->
+<div 
+  *ngIf="showMobileOverlay" 
+  class="sidebar-overlay"
+  (click)="onOverlayClick()"
+  [@fadeInOut]
+></div>
+
+<!-- Responsive Sidebar -->
+<aside 
+  #sidebarElement
+  [class]="getSidebarClasses().join(' ')"
+  [attr.aria-label]="'Template sidebar'"
+  [attr.aria-expanded]="sidebarState.isOpen"
+  role="complementary"
+  tabindex="-1"
+  [@slideInOut]="sidebarState.isOpen"
+>
+  <!-- Sidebar Header -->
+  <header class="sidebar-header">
+    <div class="sidebar-title">
+      <i class="bi bi-grid-3x3" aria-hidden="true"></i>
+      <span *ngIf="!sidebarState.isCollapsed">Templates</span>
+    </div>
+    
+    <div class="sidebar-controls">
+      <!-- Collapse/Expand Button -->
+      <button 
+        *ngIf="!isMobile"
+        class="sidebar-control-btn"
+        (click)="toggleCollapse()"
+        [attr.aria-label]="sidebarState.isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        [title]="sidebarState.isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+      >
+        <i 
+          class="bi"
+          [ngClass]="sidebarState.isCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'"
+          aria-hidden="true"
+        ></i>
+      </button>
+      
+      <!-- Close Button -->
+      <button 
+        class="sidebar-control-btn close-btn"
+        (click)="closeSidebar()"
+        [attr.aria-label]="'Close sidebar'"
+        title="Close sidebar"
+      >
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Sidebar Content -->
+  <div class="sidebar-content" *ngIf="!sidebarState.isCollapsed">
+    
+    <!-- Tab Navigation -->
+    <nav class="sidebar-tabs" role="tablist" aria-label="Sidebar navigation">
+      <button
+        *ngFor="let tab of tabs"
+        class="sidebar-tab"
+        [class.active]="sidebarState.activeTab === tab.id"
+        (click)="switchTab(tab.id)"
+        [attr.aria-selected]="sidebarState.activeTab === tab.id"
+        [attr.aria-controls]="'tab-panel-' + tab.id"
+        [id]="'tab-' + tab.id"
+        role="tab"
+        [title]="tab.label"
+      >
+        <i [class]="'bi ' + tab.icon" aria-hidden="true"></i>
+        <span class="tab-label">{{ tab.label }}</span>
+      </button>
+    </nav>
+
+    <!-- Tab Panels -->
+    <div class="sidebar-panels">
+      
+      <!-- Templates Panel -->
+      <div 
+        *ngIf="sidebarState.activeTab === 'templates'"
+        class="sidebar-panel templates-panel"
+        [id]="'tab-panel-templates'"
+        role="tabpanel"
+        [attr.aria-labelledby]="'tab-templates'"
+      >
+        <!-- Template Search -->
+        <div class="template-search">
+          <div class="search-input-wrapper">
+            <i class="bi bi-search search-icon" aria-hidden="true"></i>
+            <input 
+              type="text"
+              class="search-input"
+              placeholder="Search templates..."
+              #searchInput
+              (input)="onTemplateSearch($event)"
+              aria-label="Search templates"
+            >
+          </div>
+        </div>
+
+        <!-- Template List -->
+        <div 
+          class="template-list"
+          role="listbox"
+          [attr.aria-label]="'Available templates'"
+          [attr.aria-activedescendant]="focusedTemplateIndex >= 0 ? 'template-' + focusedTemplateIndex : null"
+        >
+          <div
+            *ngFor="let template of templates; let i = index; trackBy: trackByTemplateId"
+            [class]="getTemplateItemClasses(template, i).join(' ')"
+            [id]="'template-' + i"
+            role="option"
+            [attr.aria-selected]="isTemplateSelected(template)"
+            [attr.aria-label]="template.name + ' template'"
+            (click)="onTemplateSelect(template)"
+            (keydown.enter)="onTemplateSelect(template)"
+            (keydown.space)="onTemplateSelect(template)"
+            tabindex="0"
+          >
+            <!-- Template Preview -->
+            <div class="template-preview" *ngIf="showTemplatePreview">
+              <img 
+                [src]="getTemplatePreviewUrl(template)"
+                [alt]="template.name + ' preview'"
+                class="template-preview-image"
+                loading="lazy"
+                (error)="onImageError($event)"
+              >
+              
+              <!-- Preview Overlay -->
+              <div class="template-preview-overlay">
+                <button 
+                  class="preview-btn"
+                  (click)="onTemplatePreview(template, $event)"
+                  [attr.aria-label]="'Preview ' + template.name"
+                  title="Preview template"
+                >
+                  <i class="bi bi-eye" aria-hidden="true"></i>
+                </button>
+              </div>
+              
+              <!-- Template Badge -->
+              <div class="template-badge" *ngIf="!template.isBuiltIn">
+                <i class="bi bi-star-fill" aria-hidden="true"></i>
+                <span class="sr-only">Custom template</span>
+              </div>
+            </div>
+
+            <!-- Template Info -->
+            <div class="template-info">
+              <h4 class="template-name">{{ template.name }}</h4>
+              <p class="template-description" *ngIf="template.description">
+                {{ template.description }}
+              </p>
+              
+              <!-- Template Tags -->
+              <div class="template-tags" *ngIf="template.tags && template.tags.length > 0">
+                <span 
+                  *ngFor="let tag of template.tags.slice(0, 3)"
+                  class="template-tag"
+                >
+                  {{ tag }}
+                </span>
+                <span *ngIf="template.tags.length > 3" class="template-tag more-tags">
+                  +{{ template.tags.length - 3 }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Selection Indicator -->
+            <div class="selection-indicator" *ngIf="isTemplateSelected(template)">
+              <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="templates.length === 0" class="empty-state">
+            <i class="bi bi-grid-3x3" aria-hidden="true"></i>
+            <p>No templates available</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Panel -->
+      <div 
+        *ngIf="sidebarState.activeTab === 'preview'"
+        class="sidebar-panel preview-panel"
+        [id]="'tab-panel-preview'"
+        role="tabpanel"
+        [attr.aria-labelledby]="'tab-preview'"
+      >
+        <div class="preview-content">
+          <div *ngIf="getSelectedTemplateForPreview() as selectedTemplate" class="template-preview-large">
+            <div class="preview-header">
+              <h4>{{ selectedTemplate.name }}</h4>
+              <div class="preview-meta">
+                <span class="template-type">{{ getTemplateTypeDisplayName() }}</span>
+                <span *ngIf="!selectedTemplate.isBuiltIn" class="custom-badge">
+                  <i class="bi bi-star-fill"></i>
+                  Custom
+                </span>
+              </div>
+            </div>
+            
+            <div class="preview-description" *ngIf="selectedTemplate.description">
+              <p>{{ selectedTemplate.description }}</p>
+            </div>
+            
+            <!-- Template Preview Frame -->
+            <div class="preview-frame" *ngIf="hasTemplatePreviewContent(selectedTemplate)">
+              <div class="preview-frame-header">
+                <span class="frame-title">Live Preview</span>
+                <div class="frame-controls">
+                  <button 
+                    class="frame-control-btn"
+                    title="Refresh Preview"
+                    (click)="onTemplatePreview(selectedTemplate)"
+                  >
+                    <i class="bi bi-arrow-clockwise"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="preview-iframe-container">
+                <div 
+                  class="template-preview-content"
+                  [innerHTML]="getTemplatePreviewHtml(selectedTemplate)"
+                ></div>
+              </div>
+            </div>
+            
+            <!-- Template Tags -->
+            <div class="preview-tags" *ngIf="selectedTemplate.tags && selectedTemplate.tags.length > 0">
+              <h5>Tags</h5>
+              <div class="tags-list">
+                <span 
+                  *ngFor="let tag of selectedTemplate.tags" 
+                  class="preview-tag"
+                >
+                  {{ tag }}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Template Actions -->
+            <div class="preview-actions">
+              <button 
+                class="btn btn-primary"
+                (click)="onTemplateSelect(selectedTemplate)"
+              >
+                <i class="bi bi-check-circle"></i>
+                Select This Template
+              </button>
+            </div>
+          </div>
+          
+          <div *ngIf="!getSelectedTemplateForPreview()" class="no-preview">
+            <i class="bi bi-eye-slash" aria-hidden="true"></i>
+            <h5>No Template Selected</h5>
+            <p>Select a template from the Templates tab to see a live preview</p>
+            <button 
+              class="btn btn-outline-primary btn-sm"
+              (click)="switchTab('templates')"
+            >
+              <i class="bi bi-grid-3x3"></i>
+              Browse Templates
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Panel -->
+      <div 
+        *ngIf="sidebarState.activeTab === 'settings'"
+        class="sidebar-panel settings-panel"
+        [id]="'tab-panel-settings'"
+        role="tabpanel"
+        [attr.aria-labelledby]="'tab-settings'"
+      >
+        <div class="settings-content">
+          <h4>Sidebar Settings</h4>
+          
+          <!-- Keyboard Navigation Toggle -->
+          <div class="setting-item">
+            <label class="setting-label">
+              <input 
+                type="checkbox"
+                [(ngModel)]="keyboardNavigationEnabled"
+                class="setting-checkbox"
+              >
+              <span class="setting-text">Enable keyboard navigation</span>
+            </label>
+          </div>
+          
+          <!-- Template Preview Toggle -->
+          <div class="setting-item">
+            <label class="setting-label">
+              <input 
+                type="checkbox"
+                [ngModel]="showTemplatePreview"
+                (ngModelChange)="onPreviewToggle($event)"
+                class="setting-checkbox"
+              >
+              <span class="setting-text">Show template previews</span>
+            </label>
+          </div>
+          
+          <!-- Width Adjustment (Desktop only) -->
+          <div class="setting-item" *ngIf="!isMobile && !isTablet">
+            <label class="setting-label">
+              <span class="setting-text">Sidebar width</span>
+              <input 
+                type="range"
+                [min]="minWidth"
+                [max]="maxWidth"
+                [(ngModel)]="sidebarState.width"
+                (ngModelChange)="onWidthChange($event)"
+                class="setting-range"
+              >
+              <span class="setting-value">{{ sidebarState.width }}px</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Collapsed State Content -->
+  <div class="sidebar-collapsed-content" *ngIf="sidebarState.isCollapsed && !isMobile">
+    <div class="collapsed-templates">
+      <button
+        *ngFor="let template of templates.slice(0, 5); let i = index"
+        class="collapsed-template-btn"
+        [class.selected]="isTemplateSelected(template)"
+        (click)="onTemplateSelect(template)"
+        [attr.aria-label]="template.name"
+        [title]="template.name"
+      >
+        <img 
+          [src]="getTemplatePreviewUrl(template)"
+          [alt]="template.name"
+          class="collapsed-template-preview"
+          loading="lazy"
+        >
+      </button>
+      
+      <button 
+        *ngIf="templates.length > 5"
+        class="collapsed-more-btn"
+        (click)="toggleCollapse()"
+        [attr.aria-label]="'Show all templates'"
+        title="Show all templates"
+      >
+        <i class="bi bi-three-dots" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Resize Handle (Desktop only) -->
+  <div 
+    *ngIf="!isMobile && !sidebarState.isCollapsed"
+    #resizeHandle
+    class="resize-handle"
+    (mousedown)="startResize($event)"
+    [attr.aria-label]="'Resize sidebar'"
+    title="Drag to resize sidebar"
+  >
+    <div class="resize-handle-line"></div>
+  </div>
+</aside>
+
+<!-- Keyboard Shortcuts Help (Hidden, for screen readers) -->
+<div class="sr-only" id="keyboard-shortcuts-help">
+  <h3>Keyboard Shortcuts</h3>
+  <ul>
+    <li>Escape: Close sidebar</li>
+    <li>Tab/Shift+Tab: Navigate between tabs</li>
+    <li>Arrow Up/Down: Navigate templates</li>
+    <li>Enter/Space: Select template</li>
+    <li>Ctrl+P: Preview template</li>
+  </ul>
+</div>

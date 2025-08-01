@@ -256,7 +256,16 @@
               
               <div class="form-group">
                 <label>Default Value</label>
+                <app-asset-input
+                  *ngIf="isImageVariable()"
+                  [allowedTypes]="allowedImageTypes"
+                  [selectedAsset]="getSelectedAssetForVariable()"
+                  placeholder="Select default image"
+                  label="Default Image"
+                  (assetChanged)="onVariableAssetSelected($event)"
+                ></app-asset-input>
                 <input 
+                  *ngIf="!isImageVariable()"
                   [(ngModel)]="newVariable.defaultValue" 
                   class="form-control"
                   placeholder="Default value for this variable"
