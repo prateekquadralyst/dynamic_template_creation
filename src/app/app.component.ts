@@ -17,6 +17,8 @@ import { GlobalStylingControlsComponent } from "./components/global-styling-cont
 import { CssInjectorComponent } from "./components/global-styling-controls/css-injector.component";
 import { CssEditorDemoComponent } from "./components/css-editor-demo/css-editor-demo.component";
 import { ResponsiveSidebarComponent, SidebarState } from "./components/responsive-sidebar/responsive-sidebar.component";
+import { TemplatePreviewComponent } from "./components/template-preview/template-preview.component";
+import { TemplatePreviewModalComponent } from "./components/template-preview-modal/template-preview-modal.component";
 import {
   TemplateService,
   HeroTemplateVariables,
@@ -57,6 +59,8 @@ interface SectionEnabled {
     CssInjectorComponent,
     CssEditorDemoComponent,
     ResponsiveSidebarComponent,
+    TemplatePreviewComponent,
+    TemplatePreviewModalComponent,
   ],
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.css"],
@@ -167,6 +171,10 @@ export class AppComponent implements OnInit, OnDestroy {
     activeTab: 'templates',
     width: 320
   };
+  
+  // Template preview modal state
+  showTemplatePreviewModal = false;
+  previewModalTemplate: TemplateSection | null = null;
   
   private destroy$ = new Subject<void>();
   private autoSaveSubject = new Subject<void>();
@@ -941,6 +949,45 @@ export class AppComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error("Failed to save project:", error);
     }
+  }
+
+  /**
+   * Open template preview modal
+   */
+  openTemplatePreviewModal(template: TemplateSection): void {
+    this.previewModalTemplate = template;
+    this.showTemplatePreviewModal = true;
+  }
+
+  /**
+   * Close template preview modal
+   */
+  closeTemplatePreviewModal(): void {
+    this.showTemplatePreviewModal = false;
+    this.previewModalTemplate = null;
+  }
+
+  /**
+   * Handle template selection from preview modal
+   */
+  onTemplateSelectedFromModal(template: TemplateSection): void {
+    // Determine the template type and select it
+    if (this.activeTemplateType === 'hero') {
+      this.selectTemplate('hero', template.id);
+    } else if (this.activeTemplateType === 'features') {
+      this.selectTemplate('features', template.id);
+    } else if (this.activeTemplateType === 'testimonials') {
+      this.selectTemplate('testimonials', template.id);
+    }
+    
+    this.closeTemplatePreviewModal();
+  }
+
+  /**
+   * Handle template preview from template cards
+   */
+  onTemplatePreview(template: TemplateSection): void {
+    this.openTemplatePreviewModal(template);
   }
 
   /**

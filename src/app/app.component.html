@@ -486,114 +486,39 @@
     <div class="template-panel-content">
       <!-- Show templates for hero or features sections -->
       <div
-        class="template-grid-large"
+        class="template-grid-enhanced"
         *ngIf="
           activeTemplateType === 'hero' ||
           activeTemplateType === 'features' ||
           activeTemplateType === 'testimonials'
         "
       >
-        <div
+        <app-template-preview
           *ngFor="
             let template of activeTemplateType === 'hero'
               ? availableHeroTemplates
               : availableFeaturesTemplates
           "
-          class="template-card-large"
-          [ngClass]="{
-            active:
-              (activeTemplateType === 'hero' &&
-                selectedHeroTemplate === template.id) ||
-              (activeTemplateType === 'features' &&
-                selectedFeaturesTemplate === template.id) ||
-              (activeTemplateType === 'testimonials' &&
-                selectedFeaturesTemplate === template.id),
-            'custom-template': !template.isBuiltIn
-          }"
-          (click)="
+          [template]="template"
+          [width]="320"
+          [height]="240"
+          [scale]="0.6"
+          [isSelected]="
+            (activeTemplateType === 'hero' &&
+              selectedHeroTemplate === template.id) ||
+            (activeTemplateType === 'features' &&
+              selectedFeaturesTemplate === template.id) ||
+            (activeTemplateType === 'testimonials' &&
+              selectedFeaturesTemplate === template.id)
+          "
+          [showHoverEffects]="true"
+          [enableClickToPreview]="true"
+          (templateSelected)="
             activeTemplateType &&
               selectTemplate(activeTemplateType, template.id)
           "
-        >
-          <div class="template-preview-large">
-            <img
-              [src]="template.previewImage"
-              [alt]="template.name"
-              class="template-preview-image"
-            />
-            <div class="template-badge" *ngIf="!template.isBuiltIn">
-              <i class="bi bi-star-fill"></i>
-              Custom
-            </div>
-            <div
-              class="template-actions"
-              *ngIf="!template.isBuiltIn"
-              (click)="$event.stopPropagation()"
-            >
-              <button
-                class="template-action-btn"
-                (click)="exportTemplate(template.id)"
-                title="Export Template"
-              >
-                <i class="bi bi-download"></i>
-              </button>
-              <button
-                class="template-action-btn"
-                (click)="editCustomTemplate(template.id)"
-                title="Edit Template"
-              >
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button
-                class="template-action-btn delete-btn"
-                (click)="deleteCustomTemplate(template.id)"
-                title="Delete Template"
-              >
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-          </div>
-          <div class="template-info-large">
-            <h4 class="template-name">
-              {{ template.name }}
-              <span class="template-type-badge" *ngIf="!template.isBuiltIn"
-                >Custom</span
-              >
-            </h4>
-            <p class="template-description">{{ template.description }}</p>
-            <div
-              class="template-tags"
-              *ngIf="template.tags && template.tags.length > 0"
-            >
-              <span class="tag" *ngFor="let tag of template.tags">{{
-                tag
-              }}</span>
-            </div>
-            <button
-              class="select-template-btn"
-              [ngClass]="{
-                selected:
-                  (activeTemplateType === 'hero' &&
-                    selectedHeroTemplate === template.id) ||
-                  (activeTemplateType === 'features' &&
-                    selectedFeaturesTemplate === template.id) ||
-                  (activeTemplateType === 'testimonials' &&
-                    selectedFeaturesTemplate === template.id)
-              }"
-            >
-              {{
-                (activeTemplateType === "hero" &&
-                  selectedHeroTemplate === template.id) ||
-                (activeTemplateType === "features" &&
-                  selectedFeaturesTemplate === template.id) ||
-                (activeTemplateType === "testimonials" &&
-                  selectedFeaturesTemplate === template.id)
-                  ? "Selected"
-                  : "Select Layout"
-              }}
-            </button>
-          </div>
-        </div>
+          (templatePreviewed)="onTemplatePreview(template)"
+        ></app-template-preview>
       </div>
 
       <!-- Show style templates -->
@@ -782,6 +707,15 @@
     (sidebarStateChanged)="onSidebarStateChanged($event)"
     (sidebarClosed)="onSidebarClosed()"
   ></app-responsive-sidebar>
+
+  <!-- Template Preview Modal -->
+  <app-template-preview-modal
+    *ngIf="showTemplatePreviewModal && previewModalTemplate"
+    [template]="previewModalTemplate"
+    [isVisible]="showTemplatePreviewModal"
+    (templateSelected)="onTemplateSelectedFromModal($event)"
+    (modalClosed)="closeTemplatePreviewModal()"
+  ></app-template-preview-modal>
 
   <!-- CSS Injector for Global Styles -->
   <app-css-injector></app-css-injector>

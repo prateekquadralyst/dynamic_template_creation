@@ -16,6 +16,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 import { Subject, takeUntil, fromEvent } from 'rxjs';
 import { TemplateSection } from '../../models/template.interface';
 import { SectionType } from '../../models/section.interface';
+import { TemplatePreviewComponent } from '../template-preview/template-preview.component';
 
 export interface SidebarState {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export interface SidebarTab {
 @Component({
   selector: 'app-responsive-sidebar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TemplatePreviewComponent],
   templateUrl: './responsive-sidebar.component.html',
   styleUrls: ['./responsive-sidebar.component.css'],
   animations: [

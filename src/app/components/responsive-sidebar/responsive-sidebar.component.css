@@ -965,4 +965,67 @@
     --text-light: #d1d5db;
     --text-muted: #9ca3af;
   }
+}/* Enhan
+ced Template List */
+.template-list-enhanced {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 0;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+}
+
+.template-list-enhanced app-template-preview {
+  width: 100%;
+}
+
+.template-list-enhanced .template-focused {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Scrollbar styling for enhanced template list */
+.template-list-enhanced::-webkit-scrollbar {
+  width: 6px;
+}
+
+.template-list-enhanced::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.template-list-enhanced::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.template-list-enhanced::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Responsive adjustments for enhanced template list */
+@media (max-width: 768px) {
+  .template-list-enhanced {
+    gap: 12px;
+    padding: 12px 0;
+  }
+}
+
+/* Animation for template focus */
+.template-list-enhanced .template-focused {
+  animation: focusPulse 0.3s ease-in-out;
+}
+
+@keyframes focusPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
 }

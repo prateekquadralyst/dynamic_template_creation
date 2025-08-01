@@ -1778,4 +1778,61 @@ input[type="file"] {
 
 .template-stats .stat i {
   font-size: 0.6rem;
+}/* Enhance
+d Template Grid */
+.template-grid-enhanced {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  padding: 24px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .template-grid-enhanced {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .template-grid-enhanced {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+/* Template Preview Modal Overlay */
+.template-preview-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Scrollbar styling for template grid */
+.template-grid-enhanced::-webkit-scrollbar {
+  width: 8px;
+}
+
+.template-grid-enhanced::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.template-grid-enhanced::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.template-grid-enhanced::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

@@ -1,0 +1,120 @@
+<div [class]="getPreviewClasses().join(' ')">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="preview-loading">
+    <div class="loading-spinner">
+      <i class="bi bi-arrow-clockwise spin"></i>
+    </div>
+    <span class="loading-text">Generating preview...</span>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="hasError && !isLoading" class="preview-error">
+    <div class="error-icon">
+      <i class="bi bi-exclamation-triangle"></i>
+    </div>
+    <div class="error-message">
+      <span class="error-title">Preview Error</span>
+      <span class="error-details">{{ errorMessage }}</span>
+    </div>
+    <button class="retry-btn" (click)="refreshPreview()">
+      <i class="bi bi-arrow-clockwise"></i>
+      Retry
+    </button>
+  </div>
+
+  <!-- Preview Content -->
+  <div 
+    *ngIf="!isLoading && !hasError && previewResult" 
+    class="preview-content"
+    #previewContainer
+    (click)="onPreviewClick()"
+  >
+    <!-- Live Preview -->
+    <div class="template-live-preview" [innerHTML]="previewResult.html"></div>
+
+    <!-- Preview Overlay -->
+    <div class="preview-overlay">
+      <!-- Template Badge -->
+      <div class="template-badge" *ngIf="!template.isBuiltIn">
+        <i class="bi bi-star-fill"></i>
+        <span>Custom</span>
+      </div>
+
+      <!-- Preview Actions -->
+      <div class="preview-actions">
+        <button 
+          *ngIf="showPreviewButton"
+          class="preview-action-btn preview-btn"
+          (click)="onPreviewTemplate($event)"
+          [attr.aria-label]="'Preview ' + template.name"
+          title="Preview template"
+        >
+          <i class="bi bi-eye"></i>
+        </button>
+        
+        <button 
+          *ngIf="showSelectButton"
+          class="preview-action-btn select-btn"
+          [class.selected]="isSelected"
+          (click)="onSelectTemplate()"
+          [attr.aria-label]="'Select ' + template.name"
+          [title]="isSelected ? 'Template selected' : 'Select template'"
+        >
+          <i class="bi" [ngClass]="isSelected ? 'bi-check-circle-fill' : 'bi-plus-circle'"></i>
+        </button>
+      </div>
+
+      <!-- Selection Indicator -->
+      <div class="selection-indicator" *ngIf="isSelected">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Info -->
+  <div class="template-info" *ngIf="!isLoading">
+    <div class="template-header">
+      <h4 class="template-name">{{ template.name }}</h4>
+      <span class="template-type">{{ getTemplateTypeDisplayName() }}</span>
+    </div>
+    
+    <p class="template-description" *ngIf="template.description">
+      {{ template.description }}
+    </p>
+    
+    <!-- Template Tags -->
+    <div class="template-tags" *ngIf="template.tags && template.tags.length > 0">
+      <span 
+        *ngFor="let tag of template.tags.slice(0, 3)" 
+        class="template-tag"
+      >
+        {{ tag }}
+      </span>
+      <span *ngIf="template.tags.length > 3" class="template-tag more-tags">
+        +{{ template.tags.length - 3 }}
+      </span>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="template-actions" *ngIf="!hasError">
+      <button 
+        *ngIf="showSelectButton"
+        class="btn btn-primary select-template-btn"
+        [class.selected]="isSelected"
+        (click)="onSelectTemplate()"
+      >
+        <i class="bi" [ngClass]="isSelected ? 'bi-check-circle-fill' : 'bi-plus-circle'"></i>
+        {{ isSelected ? 'Selected' : 'Select Template' }}
+      </button>
+      
+      <button 
+        *ngIf="showPreviewButton"
+        class="btn btn-outline-secondary preview-template-btn"
+        (click)="onPreviewTemplate()"
+      >
+        <i class="bi bi-eye"></i>
+        Preview
+      </button>
+    </div>
+  </div>
+</div>

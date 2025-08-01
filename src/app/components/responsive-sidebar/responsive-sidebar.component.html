@@ -98,80 +98,34 @@
           </div>
         </div>
 
-        <!-- Template List -->
+        <!-- Template List with Enhanced Previews -->
         <div 
-          class="template-list"
+          class="template-list-enhanced"
           role="listbox"
           [attr.aria-label]="'Available templates'"
           [attr.aria-activedescendant]="focusedTemplateIndex >= 0 ? 'template-' + focusedTemplateIndex : null"
         >
-          <div
+          <app-template-preview
             *ngFor="let template of templates; let i = index; trackBy: trackByTemplateId"
-            [class]="getTemplateItemClasses(template, i).join(' ')"
+            [template]="template"
+            [width]="sidebarState.width - 40"
+            [height]="180"
+            [scale]="0.4"
+            [isSelected]="isTemplateSelected(template)"
+            [showHoverEffects]="true"
+            [enableClickToPreview]="true"
+            [showPreviewButton]="true"
+            [showSelectButton]="true"
             [id]="'template-' + i"
-            role="option"
+            [class]="isTemplateFocused(i) ? 'template-focused' : ''"
             [attr.aria-selected]="isTemplateSelected(template)"
             [attr.aria-label]="template.name + ' template'"
-            (click)="onTemplateSelect(template)"
+            [attr.tabindex]="0"
+            (templateSelected)="onTemplateSelect(template)"
+            (templatePreviewed)="onTemplatePreview(template)"
             (keydown.enter)="onTemplateSelect(template)"
             (keydown.space)="onTemplateSelect(template)"
-            tabindex="0"
-          >
-            <!-- Template Preview -->
-            <div class="template-preview" *ngIf="showTemplatePreview">
-              <img 
-                [src]="getTemplatePreviewUrl(template)"
-                [alt]="template.name + ' preview'"
-                class="template-preview-image"
-                loading="lazy"
-                (error)="onImageError($event)"
-              >
-              
-              <!-- Preview Overlay -->
-              <div class="template-preview-overlay">
-                <button 
-                  class="preview-btn"
-                  (click)="onTemplatePreview(template, $event)"
-                  [attr.aria-label]="'Preview ' + template.name"
-                  title="Preview template"
-                >
-                  <i class="bi bi-eye" aria-hidden="true"></i>
-                </button>
-              </div>
-              
-              <!-- Template Badge -->
-              <div class="template-badge" *ngIf="!template.isBuiltIn">
-                <i class="bi bi-star-fill" aria-hidden="true"></i>
-                <span class="sr-only">Custom template</span>
-              </div>
-            </div>
-
-            <!-- Template Info -->
-            <div class="template-info">
-              <h4 class="template-name">{{ template.name }}</h4>
-              <p class="template-description" *ngIf="template.description">
-                {{ template.description }}
-              </p>
-              
-              <!-- Template Tags -->
-              <div class="template-tags" *ngIf="template.tags && template.tags.length > 0">
-                <span 
-                  *ngFor="let tag of template.tags.slice(0, 3)"
-                  class="template-tag"
-                >
-                  {{ tag }}
-                </span>
-                <span *ngIf="template.tags.length > 3" class="template-tag more-tags">
-                  +{{ template.tags.length - 3 }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Selection Indicator -->
-            <div class="selection-indicator" *ngIf="isTemplateSelected(template)">
-              <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
-            </div>
-          </div>
+          ></app-template-preview>
 
           <!-- Empty State -->
           <div *ngIf="templates.length === 0" class="empty-state">

@@ -1,0 +1,129 @@
+<div
+  *ngIf="isVisible"
+  class="template-preview-modal-backdrop"
+  #modalElement
+  (click)="onBackdropClick($event)"
+>
+  <div class="template-preview-modal" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div class="modal-title-section">
+        <h2 class="modal-title">{{ template.name }}</h2>
+        <span class="template-type-badge">{{
+          getTemplateTypeDisplayName()
+        }}</span>
+        <span *ngIf="!template.isBuiltIn" class="custom-badge">
+          <i class="bi bi-star-fill"></i>
+          Custom
+        </span>
+      </div>
+
+      <div class="modal-actions">
+        <button
+          class="btn btn-primary select-btn"
+          (click)="selectTemplate()"
+          [disabled]="isLoading || hasError"
+        >
+          <i class="bi bi-check-circle"></i>
+          Select Template
+        </button>
+
+        <button
+          class="btn btn-outline-secondary close-btn"
+          (click)="closeModal()"
+        >
+          <i class="bi bi-x-lg"></i>
+          Close
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Content -->
+    <div class="modal-content">
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="preview-loading">
+        <div class="loading-spinner">
+          <i class="bi bi-arrow-clockwise spin"></i>
+        </div>
+        <span class="loading-text">Generating full preview...</span>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="hasError && !isLoading" class="preview-error">
+        <div class="error-icon">
+          <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        <div class="error-content">
+          <h3>Preview Error</h3>
+          <p>{{ errorMessage }}</p>
+          <button class="btn btn-outline-primary" (click)="generatePreview()">
+            <i class="bi bi-arrow-clockwise"></i>
+            Retry
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview Content -->
+      <div
+        *ngIf="!isLoading && !hasError && previewHtml"
+        class="preview-container"
+      >
+        <div class="preview-frame">
+          <div class="preview-frame-header">
+            <div class="frame-controls">
+              <span class="frame-dot red"></span>
+              <span class="frame-dot yellow"></span>
+              <span class="frame-dot green"></span>
+            </div>
+            <span class="frame-title">Live Preview</span>
+            <div class="frame-actions">
+              <button
+                class="frame-action-btn"
+                (click)="generatePreview()"
+                title="Refresh Preview"
+              >
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="preview-content" [innerHTML]="previewHtml"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer" *ngIf="template && !isLoading">
+      <div class="template-meta">
+        <div class="template-description" *ngIf="template.description">
+          <p>{{ template.description }}</p>
+        </div>
+
+        <div
+          class="template-tags"
+          *ngIf="template.tags && template.tags.length > 0"
+        >
+          <span class="tags-label">Tags:</span>
+          <span *ngFor="let tag of template.tags" class="template-tag">
+            {{ tag }}
+          </span>
+        </div>
+      </div>
+
+      <div class="footer-actions">
+        <button class="btn btn-outline-secondary" (click)="closeModal()">
+          Cancel
+        </button>
+
+        <button
+          class="btn btn-primary"
+          (click)="selectTemplate()"
+          [disabled]="hasError"
+        >
+          <i class="bi bi-check-circle"></i>
+          Use This Template
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
