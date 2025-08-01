@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
-import { AssetInputComponent } from '../asset-picker/asset-input.component';
+import { EnhancedAssetInputComponent } from '../asset-picker/enhanced-asset-input.component';
 import { Asset, AssetType } from '../../models/asset.interface';
 import { 
   CustomTemplate, 
@@ -20,7 +20,7 @@ import { validateTemplate } from '../../utils/template-validation.util';
 @Component({
   selector: 'app-template-builder',
   standalone: true,
-  imports: [CommonModule, FormsModule, AssetInputComponent],
+  imports: [CommonModule, FormsModule, EnhancedAssetInputComponent],
   templateUrl: './template-builder.component.html',
   styleUrls: ['./template-builder.component.css']
 })

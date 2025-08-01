@@ -310,7 +310,7 @@
       type="file" 
       class="hidden-file-input"
       multiple
-      [accept]="config.allowedTypes ? config.allowedTypes.map(type => type + '/*').join(',') : '*/*'"
+      [accept]="getAcceptTypes()"
       (change)="onFileInputChange($event)"
     >
   </div>

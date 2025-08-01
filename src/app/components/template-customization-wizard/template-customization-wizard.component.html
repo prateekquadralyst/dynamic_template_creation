@@ -172,7 +172,7 @@
               <label for="heroImage">Hero Image</label>
               <app-asset-input
                 [allowedTypes]="allowedImageTypes"
-                [selectedAsset]="customization.heroImage"
+                [selectedAsset]="customization.heroImage || null"
                 placeholder="Select a hero image"
                 label="Hero Image"
                 (assetChanged)="onHeroImageSelected($event)"

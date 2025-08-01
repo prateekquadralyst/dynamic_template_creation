@@ -3,6 +3,8 @@ export * from './database.service';
 export * from './project.service';
 export * from './template.service';
 export * from './asset.service';
+export * from './asset-optimization.service';
+export * from './asset-replacement.service';
 export * from './global-styling.service';
 export * from './font-management.service';
 export * from './style-export-import.service';

@@ -1,28 +1,38 @@
-import { Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, forwardRef, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { AssetPickerComponent, AssetPickerConfig } from './asset-picker.component';
 import { AssetOptimizationComponent } from './asset-optimization.component';
+import { AssetReplacementPickerComponent } from './asset-replacement-picker.component';
 import { Asset, AssetType } from '../../models/asset.interface';
 import { AssetService } from '../../services/asset.service';
 import { AssetReplacementService } from '../../services/asset-replacement.service';
+import { AssetIntegrationService, AssetIntegrationContext } from '../../services/asset-integration.service';
 
 @Component({
-  selector: 'app-asset-input',
+  selector: 'app-enhanced-asset-input',
   standalone: true,
-  imports: [CommonModule, AssetPickerComponent, AssetOptimizationComponent],
+  imports: [CommonModule, AssetPickerComponent, AssetOptimizationComponent, AssetReplacementPickerComponent],
   template: `
-    <!-- Asset Input Display -->
-    <div class="asset-input-container" [class.has-value]="selectedAsset" [class.disabled]="disabled">
+    <!-- Enhanced Asset Input Display -->
+    <div class="enhanced-asset-input" [class.has-value]="selectedAsset" [class.disabled]="disabled">
       
+      <!-- Label -->
+      <label class="input-label" *ngIf="label">
+        {{ label }}
+        <span class="required-indicator" *ngIf="required">*</span>
+      </label>
+
       <!-- Selected Asset Display -->
-      <div class="selected-asset" *ngIf="selectedAsset" (click)="openPicker()">
+      <div class="selected-asset-display" *ngIf="selectedAsset" (click)="openPicker()">
         <div class="asset-preview">
           <img 
             *ngIf="selectedAsset.type === AssetType.IMAGE" 
             [src]="selectedAsset.url" 
             [alt]="selectedAsset.name"
             class="preview-image"
+            loading="lazy"
           >
           <div 
             *ngIf="selectedAsset.type !== AssetType.IMAGE"
@@ -31,16 +41,32 @@ import { AssetReplacementService } from '../../services/asset-replacement.servic
           >
             <span class="preview-icon">{{ getAssetTypeIcon(selectedAsset.type) }}</span>
           </div>
+          
+          <!-- Asset Type Badge -->
+          <div class="asset-type-badge">
+            {{ selectedAsset.type | titlecase }}
+          </div>
         </div>
         
-        <div class="asset-info">
+        <div class="asset-details">
           <div class="asset-name" [title]="selectedAsset.name">{{ selectedAsset.name }}</div>
           <div class="asset-meta">
-            <span class="asset-type">{{ selectedAsset.type | titlecase }}</span>
-            <span class="asset-size">{{ formatFileSize(selectedAsset.size) }}</span>
-            <span class="asset-dimensions" *ngIf="selectedAsset.dimensions">
+            <span class="meta-item">
+              <i class="bi bi-file-earmark"></i>
+              {{ formatFileSize(selectedAsset.size) }}
+            </span>
+            <span class="meta-item" *ngIf="selectedAsset.dimensions">
+              <i class="bi bi-aspect-ratio"></i>
               {{ selectedAsset.dimensions.width }}×{{ selectedAsset.dimensions.height }}
             </span>
+            <span class="meta-item" *ngIf="selectedAsset.usageCount > 0">
+              <i class="bi bi-link-45deg"></i>
+              Used {{ selectedAsset.usageCount }} time(s)
+            </span>
+          </div>
+          <div class="asset-tags" *ngIf="selectedAsset.tags.length > 0">
+            <span class="tag" *ngFor="let tag of selectedAsset.tags.slice(0, 3)">{{ tag }}</span>
+            <span class="tag-more" *ngIf="selectedAsset.tags.length > 3">+{{ selectedAsset.tags.length - 3 }}</span>
           </div>
         </div>
         
@@ -59,8 +85,17 @@ import { AssetReplacementService } from '../../services/asset-replacement.servic
             (click)="$event.stopPropagation(); openReplacement()"
             [disabled]="disabled"
             title="Replace asset"
+            *ngIf="showReplacement"
           >
             <i class="bi bi-arrow-repeat"></i>
+          </button>
+          <button 
+            class="action-btn info-btn"
+            (click)="$event.stopPropagation(); showAssetInfo()"
+            [disabled]="disabled"
+            title="Asset information"
+          >
+            <i class="bi bi-info-circle"></i>
           </button>
           <button 
             class="action-btn remove-btn"
@@ -75,27 +110,45 @@ import { AssetReplacementService } from '../../services/asset-replacement.servic
 
       <!-- Empty State -->
       <div class="empty-state" *ngIf="!selectedAsset" (click)="openPicker()">
-        <div class="empty-icon">
-          <i class="bi bi-image"></i>
+        <div class="empty-content">
+          <div class="empty-icon">
+            <i class="bi bi-image" *ngIf="allowedTypes.length === 0 || allowedTypes.includes(AssetType.IMAGE)"></i>
+            <i class="bi bi-file-earmark" *ngIf="allowedTypes.length > 0 && !allowedTypes.includes(AssetType.IMAGE)"></i>
+          </div>
+          <div class="empty-text">
+            <div class="empty-title">{{ placeholder || 'Select an asset' }}</div>
+            <div class="empty-subtitle">Click to browse or drag and drop</div>
+            <div class="empty-types" *ngIf="allowedTypes.length > 0">
+              Allowed: {{ getAllowedTypesDisplay() }}
+            </div>
+          </div>
+          <div class="empty-actions">
+            <button class="btn btn-outline-primary btn-sm" [disabled]="disabled">
+              <i class="bi bi-folder2-open"></i>
+              Browse Assets
+            </button>
+          </div>
         </div>
-        <div class="empty-text">
-          <div class="empty-title">{{ placeholder || 'Select an asset' }}</div>
-          <div class="empty-subtitle">Click to browse or drag and drop</div>
-        </div>
-        <div class="empty-actions">
-          <button class="btn btn-outline-primary btn-sm" [disabled]="disabled">
-            <i class="bi bi-folder2-open"></i>
-            Browse
-          </button>
+
+        <!-- Drag and Drop Overlay -->
+        <div class="drag-overlay" [class.active]="isDragOver && !disabled && showUpload">
+          <div class="drag-content">
+            <i class="bi bi-cloud-upload"></i>
+            <span>Drop to upload and select</span>
+          </div>
         </div>
       </div>
 
-      <!-- Drag and Drop Overlay -->
-      <div class="drag-overlay" [class.active]="isDragOver && !disabled">
-        <div class="drag-content">
-          <i class="bi bi-cloud-upload"></i>
-          <span>Drop to upload and select</span>
-        </div>
+      <!-- Help Text -->
+      <div class="help-text" *ngIf="helpText">
+        <i class="bi bi-info-circle"></i>
+        {{ helpText }}
+      </div>
+
+      <!-- Validation Error -->
+      <div class="validation-error" *ngIf="validationError">
+        <i class="bi bi-exclamation-triangle"></i>
+        {{ validationError }}
       </div>
     </div>
 
@@ -109,32 +162,79 @@ import { AssetReplacementService } from '../../services/asset-replacement.servic
     ></app-asset-picker>
 
     <!-- Asset Replacement Picker -->
-    <app-asset-picker
+    <app-asset-replacement-picker
       [isVisible]="showReplacementPicker"
-      [config]="replacementPickerConfig"
-      [selectedAssets]="[]"
+      [originalAsset]="selectedAsset"
+      [suggestions]="replacementSuggestions"
       (assetSelected)="onAssetReplacement($event)"
       (closed)="closeReplacement()"
-    ></app-asset-picker>
+    ></app-asset-replacement-picker>
 
     <!-- Asset Optimization Panel -->
     <app-asset-optimization
-      [asset]="selectedAsset || null"
+      [asset]="selectedAsset"
       [isVisible]="showOptimizationPanel"
       (optimizationCompleted)="onOptimizationCompleted($event)"
       (closed)="closeOptimization()"
     ></app-asset-optimization>
+
+    <!-- Asset Info Modal -->
+    <div class="asset-info-modal" [class.active]="showAssetInfoModal" (click)="closeAssetInfo()">
+      <div class="modal-content" (click)="$event.stopPropagation()" *ngIf="selectedAsset">
+        <div class="modal-header">
+          <h4>Asset Information</h4>
+          <button class="btn btn-outline-secondary btn-sm" (click)="closeAssetInfo()">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="asset-info-grid">
+            <div class="info-item">
+              <label>Name</label>
+              <span>{{ selectedAsset.name }}</span>
+            </div>
+            <div class="info-item">
+              <label>Type</label>
+              <span>{{ selectedAsset.type | titlecase }}</span>
+            </div>
+            <div class="info-item">
+              <label>Size</label>
+              <span>{{ formatFileSize(selectedAsset.size) }}</span>
+            </div>
+            <div class="info-item" *ngIf="selectedAsset.dimensions">
+              <label>Dimensions</label>
+              <span>{{ selectedAsset.dimensions.width }} × {{ selectedAsset.dimensions.height }}</span>
+            </div>
+            <div class="info-item">
+              <label>Uploaded</label>
+              <span>{{ formatDate(selectedAsset.uploadedAt) }}</span>
+            </div>
+            <div class="info-item">
+              <label>Usage Count</label>
+              <span>{{ selectedAsset.usageCount }}</span>
+            </div>
+            <div class="info-item full-width" *ngIf="selectedAsset.tags.length > 0">
+              <label>Tags</label>
+              <div class="tags-list">
+                <span class="tag" *ngFor="let tag of selectedAsset.tags">{{ tag }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
-  styleUrls: ['./asset-input.component.css'],
+  styleUrls: ['./enhanced-asset-input.component.css'],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => AssetInputComponent),
+      useExisting: forwardRef(() => EnhancedAssetInputComponent),
       multi: true
     }
   ]
 })
-export class AssetInputComponent implements ControlValueAccessor {
+export class EnhancedAssetInputComponent implements ControlValueAccessor, OnInit, OnDestroy {
   @Input() placeholder = '';
   @Input() allowedTypes: AssetType[] = [];
   @Input() disabled = false;
@@ -147,15 +247,18 @@ export class AssetInputComponent implements ControlValueAccessor {
   @Input() projectId?: string;
   @Input() sectionId?: string;
   @Input() variableName?: string;
-  @Input() selectedAsset: Asset | null = null;
+  @Input() validationError?: string;
   
   @Output() assetChanged = new EventEmitter<Asset | null>();
   @Output() assetUploaded = new EventEmitter<Asset>();
   @Output() assetOptimized = new EventEmitter<Asset>();
   @Output() assetReplaced = new EventEmitter<{ oldAsset: Asset; newAsset: Asset }>();
+
+  selectedAsset: Asset | null = null;
   showPicker = false;
   showOptimizationPanel = false;
   showReplacementPicker = false;
+  showAssetInfoModal = false;
   isDragOver = false;
   replacementSuggestions: Asset[] = [];
 
@@ -165,35 +268,58 @@ export class AssetInputComponent implements ControlValueAccessor {
   // ControlValueAccessor implementation
   private onChange = (value: Asset | null) => {};
   private onTouched = () => {};
+  private destroy$ = new Subject<void>();
 
   constructor(
     private assetService: AssetService,
-    private assetReplacementService: AssetReplacementService
+    private assetReplacementService: AssetReplacementService,
+    private assetIntegrationService: AssetIntegrationService
   ) {}
+
+  ngOnInit(): void {
+    this.setupDragAndDrop();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Setup drag and drop functionality
+   */
+  private setupDragAndDrop(): void {
+    // Add event listeners for drag and drop
+    document.addEventListener('dragover', this.onDocumentDragOver.bind(this));
+    document.addEventListener('dragleave', this.onDocumentDragLeave.bind(this));
+    document.addEventListener('drop', this.onDocumentDrop.bind(this));
+  }
+
+  /**
+   * Get integration context
+   */
+  private get integrationContext(): AssetIntegrationContext {
+    return {
+      projectId: this.projectId,
+      sectionId: this.sectionId,
+      variableName: this.variableName,
+      componentType: 'section-editor'
+    };
+  }
 
   /**
    * Get picker configuration
    */
   get pickerConfig(): AssetPickerConfig {
+    const baseConfig = this.assetIntegrationService.getAssetPickerConfig(this.integrationContext);
+    
     return {
-      allowedTypes: this.allowedTypes.length > 0 ? this.allowedTypes : undefined,
-      multiSelect: false,
+      ...baseConfig,
+      allowedTypes: this.allowedTypes.length > 0 ? this.allowedTypes : baseConfig.allowedTypes,
+      title: this.label || baseConfig.title,
       showUpload: this.showUpload,
-      title: this.label || 'Select Asset',
-      emptyMessage: 'No assets found'
-    };
-  }
-
-  /**
-   * Get replacement picker configuration
-   */
-  get replacementPickerConfig(): AssetPickerConfig {
-    return {
-      allowedTypes: this.allowedTypes.length > 0 ? this.allowedTypes : undefined,
-      multiSelect: false,
-      showUpload: this.showUpload,
-      title: 'Replace Asset',
-      emptyMessage: 'No replacement assets found'
+      showOptimization: this.showOptimization,
+      showReplacement: this.showReplacement
     };
   }
 
@@ -216,18 +342,32 @@ export class AssetInputComponent implements ControlValueAccessor {
   /**
    * Handle asset selection from picker
    */
-  onAssetSelected(asset: Asset): void {
-    this.setAsset(asset);
-    this.closePicker();
+  async onAssetSelected(asset: Asset): Promise<void> {
+    try {
+      await this.assetIntegrationService.handleAssetSelection(asset, this.integrationContext);
+      this.setAsset(asset);
+      this.closePicker();
+    } catch (error) {
+      console.error('Failed to handle asset selection:', error);
+      // Fallback to basic selection
+      this.setAsset(asset);
+      this.closePicker();
+    }
   }
 
   /**
    * Set selected asset
    */
   private setAsset(asset: Asset | null): void {
+    const oldAsset = this.selectedAsset;
     this.selectedAsset = asset;
     this.onChange(asset);
     this.assetChanged.emit(asset);
+
+    // Track asset usage if context is provided
+    if (asset && this.projectId && this.sectionId && this.variableName) {
+      this.assetService.trackAssetUsage(asset.id, this.projectId, this.sectionId, this.variableName);
+    }
   }
 
   /**
@@ -318,26 +458,46 @@ export class AssetInputComponent implements ControlValueAccessor {
   }
 
   /**
-   * Handle drag and drop events
+   * Show asset information modal
    */
-  onDragOver(event: DragEvent): void {
+  showAssetInfo(): void {
+    if (!this.selectedAsset) return;
+    this.showAssetInfoModal = true;
+  }
+
+  /**
+   * Close asset information modal
+   */
+  closeAssetInfo(): void {
+    this.showAssetInfoModal = false;
+  }
+
+  /**
+   * Handle document drag over
+   */
+  private onDocumentDragOver(event: DragEvent): void {
     if (this.disabled || !this.showUpload) return;
     event.preventDefault();
-    event.stopPropagation();
     this.isDragOver = true;
   }
 
-  onDragLeave(event: DragEvent): void {
+  /**
+   * Handle document drag leave
+   */
+  private onDocumentDragLeave(event: DragEvent): void {
     if (this.disabled || !this.showUpload) return;
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOver = false;
+    // Only hide drag overlay if leaving the document
+    if (!event.relatedTarget) {
+      this.isDragOver = false;
+    }
   }
 
-  onDrop(event: DragEvent): void {
+  /**
+   * Handle document drop
+   */
+  private onDocumentDrop(event: DragEvent): void {
     if (this.disabled || !this.showUpload) return;
     event.preventDefault();
-    event.stopPropagation();
     this.isDragOver = false;
 
     const files = Array.from(event.dataTransfer?.files || []);
@@ -412,6 +572,13 @@ export class AssetInputComponent implements ControlValueAccessor {
   }
 
   /**
+   * Format date
+   */
+  formatDate(date: Date): string {
+    return new Date(date).toLocaleDateString();
+  }
+
+  /**
    * Get asset type icon
    */
   getAssetTypeIcon(type: AssetType): string {
@@ -458,5 +625,22 @@ export class AssetInputComponent implements ControlValueAccessor {
 
   setDisabledState(isDisabled: boolean): void {
     this.disabled = isDisabled;
+  }
+
+  /**
+   * Get allowed types display string
+   */
+  getAllowedTypesDisplay(): string {
+    return this.allowedTypes.map(type => {
+      switch (type) {
+        case AssetType.IMAGE: return 'Images';
+        case AssetType.VIDEO: return 'Videos';
+        case AssetType.AUDIO: return 'Audio';
+        case AssetType.DOCUMENT: return 'Documents';
+        case AssetType.FONT: return 'Fonts';
+        case AssetType.ICON: return 'Icons';
+        default: return 'Files';
+      }
+    }).join(', ');
   }
 }

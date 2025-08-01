@@ -204,7 +204,7 @@ import { AssetOptimizationService, OptimizationOptions, OptimizationRecommendati
             <div class="savings-label">{{ savings > 0 ? 'Savings' : 'Increase' }}</div>
             <div class="savings-value">
               <i class="bi" [class.bi-arrow-down]="savings > 0" [class.bi-arrow-up]="savings < 0"></i>
-              {{ formatFileSize(Math.abs(savings)) }} ({{ savingsPercentage }}%)
+              {{ formatFileSize(getAbsoluteSavings()) }} ({{ savingsPercentage }}%)
             </div>
           </div>
         </div>
@@ -396,6 +396,13 @@ export class AssetOptimizationComponent implements OnInit, OnDestroy {
   get savingsPercentage(): string {
     if (!this.asset || this.asset.size === 0) return '0';
     return Math.abs((this.savings / this.asset.size) * 100).toFixed(1);
+  }
+
+  /**
+   * Get absolute savings amount
+   */
+  getAbsoluteSavings(): number {
+    return Math.abs(this.savings);
   }
 
   /**

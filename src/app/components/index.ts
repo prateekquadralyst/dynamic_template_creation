@@ -1,5 +1,6 @@
 export * from './asset-manager';
 export * from './asset-picker';
+export * from './section-editor';
 export * from './css-editor';
 export * from './font-manager';
 export * from './global-styling-controls';

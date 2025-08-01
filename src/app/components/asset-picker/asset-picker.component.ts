@@ -532,4 +532,29 @@ export class AssetPickerComponent implements OnInit, OnDestroy {
     };
     return colors[type] || '#795548';
   }
+
+  /**
+   * Get accept types for file input
+   */
+  getAcceptTypes(): string {
+    if (this.config.allowedTypes && this.config.allowedTypes.length > 0) {
+      return this.config.allowedTypes.map(type => {
+        switch (type) {
+          case AssetType.IMAGE:
+            return 'image/*';
+          case AssetType.VIDEO:
+            return 'video/*';
+          case AssetType.AUDIO:
+            return 'audio/*';
+          case AssetType.DOCUMENT:
+            return '.pdf,.doc,.docx,.txt';
+          case AssetType.FONT:
+            return '.ttf,.otf,.woff,.woff2';
+          default:
+            return '*/*';
+        }
+      }).join(',');
+    }
+    return '*/*';
+  }
 }

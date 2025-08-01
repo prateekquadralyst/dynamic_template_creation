@@ -193,6 +193,11 @@ export class AssetOptimizationService {
           }
 
           // Calculate new dimensions while maintaining aspect ratio
+          if (!asset.dimensions) {
+            reject(new Error('Asset dimensions not available'));
+            return;
+          }
+          
           const { width: newWidth, height: newHeight } = this.calculateResizeDimensions(
             asset.dimensions.width,
             asset.dimensions.height,
@@ -499,10 +504,10 @@ export class AssetOptimizationService {
     if (options.maxWidth || options.maxHeight) {
       if (asset.dimensions) {
         const { width: newWidth, height: newHeight } = this.calculateResizeDimensions(
-          asset.dimensions.width,
-          asset.dimensions.height,
-          options.maxWidth || asset.dimensions.width,
-          options.maxHeight || asset.dimensions.height
+          asset.dimensions!.width,
+          asset.dimensions!.height,
+          options.maxWidth || asset.dimensions!.width,
+          options.maxHeight || asset.dimensions!.height
         );
         
         const dimensionReduction = (newWidth * newHeight) / (asset.dimensions.width * asset.dimensions.height);
