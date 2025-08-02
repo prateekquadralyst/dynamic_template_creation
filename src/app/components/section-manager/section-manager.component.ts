@@ -22,9 +22,12 @@ import {
   SectionFilter,
   SectionSortBy,
   SortDirection,
+  ResponsiveSettings,
+  DeviceType,
 } from "../../models/section.interface";
 import { TemplateService } from "../../services/template.service";
 import { ProjectService } from "../../services/project.service";
+import { DevicePreset } from "../responsive-design-editor/responsive-design-editor.component";
 
 @Component({
   selector: "app-section-manager",
@@ -36,11 +39,21 @@ import { ProjectService } from "../../services/project.service";
 export class SectionManagerComponent implements OnInit, OnDestroy {
   @Input() sections: Section[] = [];
   @Input() projectId: string | null = null;
+  
+  // Responsive design inputs
+  @Input() currentDevice: DevicePreset | null = null;
+  @Input() responsiveSettings: ResponsiveSettings | null = null;
+  @Input() enableResponsiveControls: boolean = false;
+  
   @Output() sectionsChange = new EventEmitter<Section[]>();
   @Output() sectionSelected = new EventEmitter<Section>();
   @Output() sectionVisibilityChanged = new EventEmitter<{
     section: Section;
     isVisible: boolean;
+  }>();
+  @Output() sectionResponsiveSettingsChanged = new EventEmitter<{
+    section: Section;
+    responsiveSettings: ResponsiveSettings;
   }>();
 
   // Section library
@@ -722,5 +735,338 @@ export class SectionManagerComponent implements OnInit, OnDestroy {
     ctx.fillText(text, 150, 100);
 
     return canvas.toDataURL();
+  }
+
+  // Responsive Design Methods
+
+  /**
+   * Add section with responsive settings
+   */
+  addSectionWithResponsiveSettings(libraryItem: SectionLibraryItem): void {
+    const responsiveSettings: ResponsiveSettings = this.responsiveSettings || {
+      breakpoints: [
+        { name: 'mobile', minWidth: 0, maxWidth: 767 },
+        { name: 'tablet', minWidth: 768, maxWidth: 1023 },
+        { name: 'desktop', minWidth: 1024 }
+      ],
+      deviceSpecificStyles: {
+        mobile: {},
+        tablet: {},
+        desktop: {}
+      }
+    };
+
+    const newSection: Section = {
+      id: this.generateSectionId(),
+      type: libraryItem.type,
+      templateId: libraryItem.templateId,
+      content: this.getDefaultContent(libraryItem.type),
+      styles: {
+        customCss: "",
+        overrides: {},
+        theme: {
+          colorScheme: "light",
+          spacing: "medium" as any,
+          borderRadius: "medium" as any,
+          shadow: "medium" as any,
+        },
+      },
+      order: this.sections.length,
+      isVisible: true,
+      responsiveSettings: responsiveSettings,
+      metadata: {
+        name: libraryItem.name,
+        description: libraryItem.description,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isDuplicate: false,
+        customizations: [],
+      },
+    };
+
+    const updatedSections = [...this.sections, newSection];
+    this.updateSections(updatedSections);
+    this.showLibrary = false;
+  }
+
+  /**
+   * Update section responsive settings
+   */
+  updateSectionResponsiveSettings(section: Section, responsiveSettings: ResponsiveSettings): void {
+    const updatedSection = { 
+      ...section, 
+      responsiveSettings,
+      metadata: {
+        ...section.metadata,
+        updatedAt: new Date()
+      }
+    };
+    
+    const updatedSections = this.sections.map((s) =>
+      s.id === section.id ? updatedSection : s
+    );
+    
+    this.updateSections(updatedSections);
+    this.sectionResponsiveSettingsChanged.emit({
+      section: updatedSection,
+      responsiveSettings
+    });
+  }
+
+  /**
+   * Toggle section visibility for specific device
+   */
+  toggleSectionVisibilityForDevice(section: Section, deviceType: DeviceType): void {
+    const updatedSection = { ...section };
+    
+    if (!updatedSection.responsiveSettings.hideOnDevices) {
+      updatedSection.responsiveSettings.hideOnDevices = [];
+    }
+
+    const hideOnDevices = [...updatedSection.responsiveSettings.hideOnDevices];
+    const deviceIndex = hideOnDevices.indexOf(deviceType);
+
+    if (deviceIndex > -1) {
+      // Remove device from hide list (show on device)
+      hideOnDevices.splice(deviceIndex, 1);
+    } else {
+      // Add device to hide list (hide on device)
+      hideOnDevices.push(deviceType);
+    }
+
+    updatedSection.responsiveSettings = {
+      ...updatedSection.responsiveSettings,
+      hideOnDevices
+    };
+
+    updatedSection.metadata.updatedAt = new Date();
+
+    const updatedSections = this.sections.map((s) =>
+      s.id === section.id ? updatedSection : s
+    );
+
+    this.updateSections(updatedSections);
+  }
+
+  /**
+   * Check if section is visible on current device
+   */
+  isSectionVisibleOnCurrentDevice(section: Section): boolean {
+    if (!this.currentDevice || !this.enableResponsiveControls) {
+      return section.isVisible;
+    }
+
+    const hideOnDevices = section.responsiveSettings?.hideOnDevices || [];
+    return section.isVisible && !hideOnDevices.includes(this.currentDevice.type);
+  }
+
+  /**
+   * Check if section is hidden on specific device
+   */
+  isSectionHiddenOnDevice(section: Section, deviceType: DeviceType): boolean {
+    const hideOnDevices = section.responsiveSettings?.hideOnDevices || [];
+    return hideOnDevices.includes(deviceType);
+  }
+
+  /**
+   * Get sections visible on current device
+   */
+  getSectionsVisibleOnCurrentDevice(): Section[] {
+    return this.getSortedSections().filter(section => 
+      this.isSectionVisibleOnCurrentDevice(section)
+    );
+  }
+
+  /**
+   * Get device-specific style overrides for section
+   */
+  getDeviceSpecificStyles(section: Section): any {
+    if (!this.currentDevice || !section.responsiveSettings) {
+      return {};
+    }
+
+    return section.responsiveSettings.deviceSpecificStyles[this.currentDevice.type] || {};
+  }
+
+  /**
+   * Update device-specific styles for section
+   */
+  updateDeviceSpecificStyles(section: Section, deviceType: DeviceType, styles: any): void {
+    const updatedSection = { ...section };
+    
+    updatedSection.responsiveSettings = {
+      ...updatedSection.responsiveSettings,
+      deviceSpecificStyles: {
+        ...updatedSection.responsiveSettings.deviceSpecificStyles,
+        [deviceType]: styles
+      }
+    };
+
+    updatedSection.metadata.updatedAt = new Date();
+
+    const updatedSections = this.sections.map((s) =>
+      s.id === section.id ? updatedSection : s
+    );
+
+    this.updateSections(updatedSections);
+  }
+
+  /**
+   * Get current device type display name
+   */
+  getCurrentDeviceTypeName(): string {
+    if (!this.currentDevice) return 'Desktop';
+    
+    switch (this.currentDevice.type) {
+      case DeviceType.MOBILE:
+        return 'Mobile';
+      case DeviceType.TABLET:
+        return 'Tablet';
+      case DeviceType.DESKTOP:
+        return 'Desktop';
+      default:
+        return 'Desktop';
+    }
+  }
+
+  /**
+   * Get responsive status for section
+   */
+  getSectionResponsiveStatus(section: Section): string {
+    if (!this.enableResponsiveControls) {
+      return 'disabled';
+    }
+
+    const hideOnDevices = section.responsiveSettings?.hideOnDevices || [];
+    const deviceTypes = [DeviceType.MOBILE, DeviceType.TABLET, DeviceType.DESKTOP];
+    
+    if (hideOnDevices.length === 0) {
+      return 'visible-all';
+    } else if (hideOnDevices.length === deviceTypes.length) {
+      return 'hidden-all';
+    } else {
+      return 'partial-visibility';
+    }
+  }
+
+  /**
+   * Get responsive status color
+   */
+  getResponsiveStatusColor(status: string): string {
+    const colors = {
+      'visible-all': '#4CAF50',
+      'partial-visibility': '#FF9800',
+      'hidden-all': '#F44336',
+      'disabled': '#9E9E9E'
+    };
+    return colors[status] || '#9E9E9E';
+  }
+
+  /**
+   * Get responsive status icon
+   */
+  getResponsiveStatusIcon(status: string): string {
+    const icons = {
+      'visible-all': '👁️',
+      'partial-visibility': '👁️‍🗨️',
+      'hidden-all': '🙈',
+      'disabled': '🔒'
+    };
+    return icons[status] || '❓';
+  }
+
+  /**
+   * Check if responsive controls are enabled and device is selected
+   */
+  get isResponsiveModeActive(): boolean {
+    return this.enableResponsiveControls && !!this.currentDevice;
+  }
+
+  /**
+   * Get device types for responsive controls
+   */
+  getDeviceTypes(): DeviceType[] {
+    return [DeviceType.MOBILE, DeviceType.TABLET, DeviceType.DESKTOP];
+  }
+
+  /**
+   * Get device type display name
+   */
+  getDeviceTypeDisplayName(deviceType: DeviceType): string {
+    switch (deviceType) {
+      case DeviceType.MOBILE:
+        return 'Mobile';
+      case DeviceType.TABLET:
+        return 'Tablet';
+      case DeviceType.DESKTOP:
+        return 'Desktop';
+      default:
+        return deviceType;
+    }
+  }
+
+  /**
+   * Get device type icon
+   */
+  getDeviceTypeIcon(deviceType: DeviceType): string {
+    switch (deviceType) {
+      case DeviceType.MOBILE:
+        return '📱';
+      case DeviceType.TABLET:
+        return '📱';
+      case DeviceType.DESKTOP:
+        return '💻';
+      default:
+        return '📱';
+    }
+  }
+
+  /**
+   * Override addSection to use responsive version when responsive controls are enabled
+   */
+  addSection(libraryItem: SectionLibraryItem): void {
+    if (this.enableResponsiveControls) {
+      this.addSectionWithResponsiveSettings(libraryItem);
+    } else {
+      // Use original implementation
+      const newSection: Section = {
+        id: this.generateSectionId(),
+        type: libraryItem.type,
+        templateId: libraryItem.templateId,
+        content: this.getDefaultContent(libraryItem.type),
+        styles: {
+          customCss: "",
+          overrides: {},
+          theme: {
+            colorScheme: "light",
+            spacing: "medium" as any,
+            borderRadius: "medium" as any,
+            shadow: "medium" as any,
+          },
+        },
+        order: this.sections.length,
+        isVisible: true,
+        responsiveSettings: {
+          breakpoints: [],
+          deviceSpecificStyles: {
+            mobile: {},
+            tablet: {},
+            desktop: {},
+          },
+        },
+        metadata: {
+          name: libraryItem.name,
+          description: libraryItem.description,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isDuplicate: false,
+          customizations: [],
+        },
+      };
+
+      const updatedSections = [...this.sections, newSection];
+      this.updateSections(updatedSections);
+      this.showLibrary = false;
+    }
   }
 }

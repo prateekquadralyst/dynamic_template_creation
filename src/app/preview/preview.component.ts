@@ -1,8 +1,10 @@
-import { Component, Input, OnChanges, SimpleChanges } from "@angular/core";
+import { Component, Input, OnChanges, SimpleChanges, ViewChild, ElementRef, OnInit, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { DomSanitizer, SafeHtml } from "@angular/platform-browser";
-import { Section, SectionType } from "../models/section.interface";
+import { Section, SectionType, ResponsiveSettings, DeviceType } from "../models/section.interface";
 import { TemplateService } from "../services/template.service";
+import { ResponsiveDesignEditorComponent, DevicePreset } from "../components/responsive-design-editor/responsive-design-editor.component";
+import { Subject, takeUntil } from "rxjs";
 
 interface Feature {
   title: string;
@@ -11,7 +13,12 @@ interface Feature {
 
 interface SectionEnabled {
   hero: boolean;
+  about: boolean;
+  services: boolean;
   features: boolean;
+  testimonials: boolean;
+  contact: boolean;
+  footer: boolean;
 }
 
 @Component({
@@ -21,7 +28,7 @@ interface SectionEnabled {
   templateUrl: "./preview.component.html",
   styleUrls: ["./preview.component.css"],
 })
-export class PreviewComponent implements OnChanges {
+export class PreviewComponent implements OnChanges, OnInit, OnDestroy {
   // Legacy inputs for backward compatibility
   @Input() headerText: string = "";
   @Input() heroSubheading: string = "";
@@ -34,24 +41,94 @@ export class PreviewComponent implements OnChanges {
   @Input() featuresSubheading: string = "";
   @Input() features: Feature[] = [];
   @Input() previewMode: "desktop" | "tablet" | "mobile" = "desktop";
-  @Input() sectionEnabled: SectionEnabled = { hero: true, features: true };
+  @Input() sectionEnabled: SectionEnabled = { 
+    hero: true, 
+    about: true, 
+    services: true, 
+    features: true, 
+    testimonials: true, 
+    contact: true, 
+    footer: true 
+  };
   @Input() styleCss: string = "";
   @Input() testimonialsHtml: string = "";
   @Input() testimonialsCss: string = "";
+  
+  // New section inputs
+  @Input() aboutHtml: string = "";
+  @Input() aboutCss: string = "";
+  @Input() aboutTitle: string = "";
+  @Input() aboutDescription: string = "";
+  @Input() aboutImageUrl: string = "";
+  
+  @Input() servicesHtml: string = "";
+  @Input() servicesCss: string = "";
+  @Input() servicesTitle: string = "";
+  @Input() servicesSubheading: string = "";
+  @Input() services: any[] = [];
+  
+  @Input() contactHtml: string = "";
+  @Input() contactCss: string = "";
+  @Input() contactTitle: string = "";
+  @Input() contactSubheading: string = "";
+  @Input() contactEmail: string = "";
+  @Input() contactPhone: string = "";
+  @Input() contactAddress: string = "";
+  
+  @Input() footerHtml: string = "";
+  @Input() footerCss: string = "";
+  @Input() footerCompanyName: string = "";
+  @Input() footerDescription: string = "";
+  @Input() footerCopyright: string = "";
+  @Input() socialLinks: any[] = [];
+  
+  @Input() testimonialsTitle: string = "";
+  @Input() testimonialsSubheading: string = "";
+  @Input() testimonials: any[] = [];
 
   // New multi-section inputs
   @Input() sections: Section[] = [];
   @Input() globalStyles: string = "";
   @Input() enableTransitions: boolean = true;
 
+  // Responsive design inputs
+  @Input() currentDevice: DevicePreset | null = null;
+  @Input() responsiveSettings: ResponsiveSettings | null = null;
+  @Input() enableDeviceSimulation: boolean = false;
+
+  @ViewChild('previewContainer', { static: false }) previewContainer!: ElementRef<HTMLDivElement>;
+
   safeHtml: SafeHtml = "";
+  private destroy$ = new Subject<void>();
 
   constructor(
     private sanitizer: DomSanitizer,
     private templateService: TemplateService
   ) {}
 
+  ngOnInit(): void {
+    // Initialize responsive settings if device simulation is enabled
+    if (this.enableDeviceSimulation && this.currentDevice) {
+      this.setupDeviceSimulation();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
+    // Handle device changes for responsive simulation
+    if (changes['currentDevice'] && this.enableDeviceSimulation) {
+      this.setupDeviceSimulation();
+    }
+
+    // Handle responsive settings changes
+    if (changes['responsiveSettings']) {
+      this.updateResponsiveStyles();
+    }
+
     // Immediately update the content when any input changes
     this.updateContent();
   }
@@ -102,25 +179,64 @@ export class PreviewComponent implements OnChanges {
    * Render content using the legacy approach for backward compatibility
    */
   private renderLegacyContent(): void {
-    // Process the hero section (only if it's enabled)
+    // Process all sections (only if they're enabled)
     const processedHeroHtml = this.sectionEnabled?.hero
       ? this.processHeroSection()
       : "";
 
-    // Process the features section (only if it's enabled)
+    const processedAboutHtml = this.sectionEnabled?.about
+      ? this.processAboutSection()
+      : "";
+
+    const processedServicesHtml = this.sectionEnabled?.services
+      ? this.processServicesSection()
+      : "";
+
     const processedFeaturesHtml = this.sectionEnabled?.features
       ? this.processFeaturesSection()
       : "";
 
+    const processedTestimonialsHtml = this.sectionEnabled?.testimonials
+      ? this.processTestimonialsSection()
+      : "";
+
+    const processedContactHtml = this.sectionEnabled?.contact
+      ? this.processContactSection()
+      : "";
+
+    const processedFooterHtml = this.sectionEnabled?.footer
+      ? this.processFooterSection()
+      : "";
+
     // Include only the CSS for the enabled sections
     const heroCssContent = this.sectionEnabled?.hero ? this.heroCss || "" : "";
-    const featuresCssContent = this.sectionEnabled?.features
-      ? this.featuresCss || ""
-      : "";
-    const sectionsCss = heroCssContent + "\n" + featuresCssContent;
+    const aboutCssContent = this.sectionEnabled?.about ? this.aboutCss || "" : "";
+    const servicesCssContent = this.sectionEnabled?.services ? this.servicesCss || "" : "";
+    const featuresCssContent = this.sectionEnabled?.features ? this.featuresCss || "" : "";
+    const testimonialsCssContent = this.sectionEnabled?.testimonials ? this.testimonialsCss || "" : "";
+    const contactCssContent = this.sectionEnabled?.contact ? this.contactCss || "" : "";
+    const footerCssContent = this.sectionEnabled?.footer ? this.footerCss || "" : "";
 
-    // Combine sections HTML
-    const sectionsHtml = processedHeroHtml + processedFeaturesHtml;
+    const sectionsCss = [
+      heroCssContent,
+      aboutCssContent,
+      servicesCssContent,
+      featuresCssContent,
+      testimonialsCssContent,
+      contactCssContent,
+      footerCssContent
+    ].join("\n");
+
+    // Combine sections HTML in logical order
+    const sectionsHtml = [
+      processedHeroHtml,
+      processedAboutHtml,
+      processedServicesHtml,
+      processedFeaturesHtml,
+      processedTestimonialsHtml,
+      processedContactHtml,
+      processedFooterHtml
+    ].join("");
 
     // Create the complete HTML
     const htmlWithStyle = this.buildCompleteHtml(sectionsHtml, sectionsCss);
@@ -145,10 +261,21 @@ export class PreviewComponent implements OnChanges {
     // Add meta viewport tag for proper mobile rendering
     const viewportMeta = `<meta name="viewport" content="width=device-width, initial-scale=1.0">`;
 
+    // Apply responsive image handling if device simulation is enabled
+    let processedSectionsHtml = sectionsHtml;
+    if (this.enableDeviceSimulation && this.currentDevice) {
+      processedSectionsHtml = this.applyResponsiveImageHandling(sectionsHtml);
+    }
+
     // Get responsive and transition styles
     const responsiveStyles = this.getResponsiveStyles();
     const transitionStyles = this.enableTransitions
       ? this.getTransitionStyles()
+      : "";
+
+    // Get device-specific styles if responsive settings are available
+    const deviceSpecificStyles = this.responsiveSettings && this.currentDevice
+      ? this.generateDeviceSpecificStyles()
       : "";
 
     // Combine HTML and CSS for the complete page
@@ -161,10 +288,11 @@ export class PreviewComponent implements OnChanges {
         } /* Apply global/style CSS first for proper cascading */
         ${sectionsCss}
         ${responsiveStyles}
+        ${deviceSpecificStyles}
         ${transitionStyles}
       </style>
       ${viewportMeta}
-      ${sectionsHtml}
+      ${processedSectionsHtml}
     `;
   }
 
@@ -249,6 +377,166 @@ export class PreviewComponent implements OnChanges {
     const after = processedHtml.substring(endIndex + endMarker.length);
 
     return before + allFeaturesHtml + after;
+  }
+
+  /**
+   * Process the about section
+   */
+  private processAboutSection(): string {
+    if (!this.aboutHtml) {
+      return "";
+    }
+
+    let result = this.aboutHtml;
+    result = result.replace(/{{aboutTitle}}/g, this.aboutTitle || "");
+    result = result.replace(/{{aboutDescription}}/g, this.aboutDescription || "");
+    result = result.replace(/{{aboutImageUrl}}/g, this.aboutImageUrl || "");
+
+    return result;
+  }
+
+  /**
+   * Process the services section
+   */
+  private processServicesSection(): string {
+    if (!this.servicesHtml) {
+      return "";
+    }
+
+    let processedHtml = this.servicesHtml;
+    processedHtml = processedHtml.replace(/{{servicesTitle}}/g, this.servicesTitle || "");
+    processedHtml = processedHtml.replace(/{{servicesSubheading}}/g, this.servicesSubheading || "");
+
+    // Process service items
+    const startMarker = "<!-- SERVICE_ITEM_START -->";
+    const endMarker = "<!-- SERVICE_ITEM_END -->";
+    const startIndex = processedHtml.indexOf(startMarker);
+    const endIndex = processedHtml.indexOf(endMarker);
+
+    if (startIndex === -1 || endIndex === -1) {
+      return processedHtml;
+    }
+
+    const serviceTemplate = processedHtml.substring(
+      startIndex + startMarker.length,
+      endIndex
+    );
+    let allServicesHtml = "";
+
+    for (const service of this.services) {
+      let serviceHtml = serviceTemplate;
+      serviceHtml = serviceHtml.replace(/{{title}}/g, service.title || "");
+      serviceHtml = serviceHtml.replace(/{{description}}/g, service.description || "");
+      serviceHtml = serviceHtml.replace(/{{icon}}/g, service.icon || "");
+      allServicesHtml += serviceHtml;
+    }
+
+    const before = processedHtml.substring(0, startIndex);
+    const after = processedHtml.substring(endIndex + endMarker.length);
+    return before + allServicesHtml + after;
+  }
+
+  /**
+   * Process the testimonials section
+   */
+  private processTestimonialsSection(): string {
+    if (!this.testimonialsHtml) {
+      return "";
+    }
+
+    let processedHtml = this.testimonialsHtml;
+    processedHtml = processedHtml.replace(/{{testimonialsTitle}}/g, this.testimonialsTitle || "");
+    processedHtml = processedHtml.replace(/{{testimonialsSubheading}}/g, this.testimonialsSubheading || "");
+
+    // Process testimonial items
+    const startMarker = "<!-- TESTIMONIAL_ITEM_START -->";
+    const endMarker = "<!-- TESTIMONIAL_ITEM_END -->";
+    const startIndex = processedHtml.indexOf(startMarker);
+    const endIndex = processedHtml.indexOf(endMarker);
+
+    if (startIndex === -1 || endIndex === -1) {
+      return processedHtml;
+    }
+
+    const testimonialTemplate = processedHtml.substring(
+      startIndex + startMarker.length,
+      endIndex
+    );
+    let allTestimonialsHtml = "";
+
+    for (const testimonial of this.testimonials) {
+      let testimonialHtml = testimonialTemplate;
+      testimonialHtml = testimonialHtml.replace(/{{name}}/g, testimonial.name || "");
+      testimonialHtml = testimonialHtml.replace(/{{role}}/g, testimonial.role || "");
+      testimonialHtml = testimonialHtml.replace(/{{message}}/g, testimonial.message || "");
+      testimonialHtml = testimonialHtml.replace(/{{image}}/g, testimonial.image || "");
+      testimonialHtml = testimonialHtml.replace(/{{rating}}/g, testimonial.rating || "5");
+      allTestimonialsHtml += testimonialHtml;
+    }
+
+    const before = processedHtml.substring(0, startIndex);
+    const after = processedHtml.substring(endIndex + endMarker.length);
+    return before + allTestimonialsHtml + after;
+  }
+
+  /**
+   * Process the contact section
+   */
+  private processContactSection(): string {
+    if (!this.contactHtml) {
+      return "";
+    }
+
+    let result = this.contactHtml;
+    result = result.replace(/{{contactTitle}}/g, this.contactTitle || "");
+    result = result.replace(/{{contactSubheading}}/g, this.contactSubheading || "");
+    result = result.replace(/{{contactEmail}}/g, this.contactEmail || "");
+    result = result.replace(/{{contactPhone}}/g, this.contactPhone || "");
+    result = result.replace(/{{contactAddress}}/g, this.contactAddress || "");
+
+    return result;
+  }
+
+  /**
+   * Process the footer section
+   */
+  private processFooterSection(): string {
+    if (!this.footerHtml) {
+      return "";
+    }
+
+    let processedHtml = this.footerHtml;
+    processedHtml = processedHtml.replace(/{{footerCompanyName}}/g, this.footerCompanyName || "");
+    processedHtml = processedHtml.replace(/{{footerDescription}}/g, this.footerDescription || "");
+    processedHtml = processedHtml.replace(/{{footerCopyright}}/g, this.footerCopyright || "");
+
+    // Process social links
+    const startMarker = "<!-- SOCIAL_LINK_START -->";
+    const endMarker = "<!-- SOCIAL_LINK_END -->";
+    const startIndex = processedHtml.indexOf(startMarker);
+    const endIndex = processedHtml.indexOf(endMarker);
+
+    if (startIndex === -1 || endIndex === -1) {
+      return processedHtml;
+    }
+
+    const socialTemplate = processedHtml.substring(
+      startIndex + startMarker.length,
+      endIndex
+    );
+    let allSocialLinksHtml = "";
+
+    for (const link of this.socialLinks) {
+      let socialHtml = socialTemplate;
+      socialHtml = socialHtml.replace(/{{platform}}/g, link.platform || "");
+      socialHtml = socialHtml.replace(/{{url}}/g, link.url || "");
+      socialHtml = socialHtml.replace(/{{platformLower}}/g, (link.platform || "").toLowerCase());
+      allSocialLinksHtml += socialHtml;
+    }
+
+    const before = processedHtml.substring(0, startIndex);
+    const after = processedHtml.substring(endIndex + endMarker.length);
+    return before + allSocialLinksHtml + after;
   }
 
   /**
@@ -470,7 +758,7 @@ export class PreviewComponent implements OnChanges {
     const content = section.content;
     let processedHtml = html;
 
-    // Replace contact information
+    // Replace contact information with both old and new placeholder formats for compatibility
     processedHtml = processedHtml.replace(
       /{{contactTitle}}/g,
       content["contactTitle"] || ""
@@ -488,6 +776,20 @@ export class PreviewComponent implements OnChanges {
     processedHtml = processedHtml.replace(
       /{{mapUrl}}/g,
       content["mapUrl"] || ""
+    );
+
+    // Also handle legacy placeholder formats for backward compatibility
+    processedHtml = processedHtml.replace(
+      /{{contactAddress}}/g,
+      content["address"] || content["contactAddress"] || ""
+    );
+    processedHtml = processedHtml.replace(
+      /{{contactEmail}}/g,
+      content["email"] || content["contactEmail"] || ""
+    );
+    processedHtml = processedHtml.replace(
+      /{{contactPhone}}/g,
+      content["phone"] || content["contactPhone"] || ""
     );
 
     return processedHtml;
@@ -774,6 +1076,186 @@ export class PreviewComponent implements OnChanges {
         visibility: visible !important;
       }
     `;
+  }
+
+  /**
+   * Setup device simulation for responsive preview
+   */
+  private setupDeviceSimulation(): void {
+    if (!this.currentDevice || !this.previewContainer) {
+      return;
+    }
+
+    const container = this.previewContainer.nativeElement;
+    
+    // Apply device dimensions and styling
+    container.style.width = `${this.currentDevice.width}px`;
+    container.style.height = `${this.currentDevice.height}px`;
+    container.style.maxWidth = `${this.currentDevice.width}px`;
+    container.style.maxHeight = `${this.currentDevice.height}px`;
+    container.style.overflow = 'auto';
+    container.style.border = '1px solid #ccc';
+    container.style.borderRadius = '8px';
+    container.style.margin = '0 auto';
+    
+    // Add device-specific classes
+    container.classList.remove('device-mobile', 'device-tablet', 'device-desktop');
+    container.classList.add(`device-${this.currentDevice.type}`);
+    
+    // Update preview mode based on device type
+    switch (this.currentDevice.type) {
+      case DeviceType.MOBILE:
+        this.previewMode = 'mobile';
+        break;
+      case DeviceType.TABLET:
+        this.previewMode = 'tablet';
+        break;
+      case DeviceType.DESKTOP:
+        this.previewMode = 'desktop';
+        break;
+    }
+  }
+
+  /**
+   * Update responsive styles based on current responsive settings
+   */
+  private updateResponsiveStyles(): void {
+    if (!this.responsiveSettings) {
+      return;
+    }
+
+    // Apply device-specific styles from responsive settings
+    const deviceStyles = this.generateDeviceSpecificStyles();
+    this.injectResponsiveStyles(deviceStyles);
+  }
+
+  /**
+   * Generate device-specific CSS styles
+   */
+  private generateDeviceSpecificStyles(): string {
+    if (!this.responsiveSettings || !this.currentDevice) {
+      return '';
+    }
+
+    const deviceType = this.currentDevice.type;
+    const deviceStyles = this.responsiveSettings.deviceSpecificStyles[deviceType];
+    
+    if (!deviceStyles || Object.keys(deviceStyles).length === 0) {
+      return '';
+    }
+
+    // Convert device styles to CSS
+    let css = `/* Device-specific styles for ${deviceType} */\n`;
+    
+    Object.entries(deviceStyles).forEach(([property, value]) => {
+      css += `.device-${deviceType} { ${property}: ${value}; }\n`;
+    });
+
+    // Add breakpoint-specific styles
+    if (this.responsiveSettings.breakpoints.length > 0) {
+      const currentBreakpoint = this.getCurrentBreakpoint();
+      if (currentBreakpoint) {
+        css += `/* Breakpoint styles for ${currentBreakpoint.name} */\n`;
+        css += `@media (min-width: ${currentBreakpoint.minWidth}px)`;
+        if (currentBreakpoint.maxWidth) {
+          css += ` and (max-width: ${currentBreakpoint.maxWidth}px)`;
+        }
+        css += ` {\n`;
+        css += `  .section-wrapper { /* Breakpoint-specific section styles */ }\n`;
+        css += `}\n`;
+      }
+    }
+
+    return css;
+  }
+
+  /**
+   * Get current breakpoint based on device width
+   */
+  private getCurrentBreakpoint() {
+    if (!this.responsiveSettings || !this.currentDevice) {
+      return null;
+    }
+
+    return this.responsiveSettings.breakpoints.find(bp =>
+      this.currentDevice!.width >= bp.minWidth && 
+      (bp.maxWidth === undefined || this.currentDevice!.width <= bp.maxWidth)
+    );
+  }
+
+  /**
+   * Inject responsive styles into the document
+   */
+  private injectResponsiveStyles(styles: string): void {
+    // Remove existing responsive styles
+    const existingStyle = document.getElementById('responsive-preview-styles');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    // Add new responsive styles
+    if (styles.trim()) {
+      const styleElement = document.createElement('style');
+      styleElement.id = 'responsive-preview-styles';
+      styleElement.textContent = styles;
+      document.head.appendChild(styleElement);
+    }
+  }
+
+  /**
+   * Apply responsive image handling
+   */
+  private applyResponsiveImageHandling(html: string): string {
+    if (!this.currentDevice) {
+      return html;
+    }
+
+    // Replace image tags with responsive versions
+    return html.replace(/<img([^>]*?)src="([^"]*?)"([^>]*?)>/gi, (match, beforeSrc, src, afterSrc) => {
+      // Generate responsive image attributes
+      const responsiveAttrs = this.generateResponsiveImageAttributes(src);
+      return `<img${beforeSrc}src="${src}"${afterSrc} ${responsiveAttrs}>`;
+    });
+  }
+
+  /**
+   * Generate responsive image attributes based on current device
+   */
+  private generateResponsiveImageAttributes(src: string): string {
+    if (!this.currentDevice) {
+      return '';
+    }
+
+    const deviceType = this.currentDevice.type;
+    const deviceWidth = this.currentDevice.width;
+    const pixelRatio = this.currentDevice.pixelRatio;
+
+    let attributes = [];
+
+    // Add loading attribute for performance
+    attributes.push('loading="lazy"');
+
+    // Add responsive sizing
+    if (deviceType === DeviceType.MOBILE) {
+      attributes.push('style="max-width: 100%; height: auto;"');
+    } else if (deviceType === DeviceType.TABLET) {
+      attributes.push('style="max-width: 100%; height: auto;"');
+    }
+
+    // Add srcset for high DPI displays
+    if (pixelRatio > 1) {
+      // In a real implementation, you would generate different sized images
+      attributes.push(`srcset="${src} 1x, ${src} ${pixelRatio}x"`);
+    }
+
+    // Add sizes attribute for responsive images
+    if (deviceType === DeviceType.MOBILE) {
+      attributes.push(`sizes="(max-width: ${deviceWidth}px) 100vw, ${deviceWidth}px"`);
+    } else if (deviceType === DeviceType.TABLET) {
+      attributes.push(`sizes="(max-width: ${deviceWidth}px) 100vw, ${deviceWidth}px"`);
+    }
+
+    return attributes.join(' ');
   }
 
   /**

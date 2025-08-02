@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from "@angular/core";
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Subject, takeUntil, debounceTime } from "rxjs";
@@ -8,6 +8,7 @@ import { CssValidationService, CSSValidationError } from "../../services/css-val
 import { StyleExportImportService, StyleTemplate, StylePackage, StyleImportResult } from "../../services/style-export-import.service";
 import { CssEditorComponent } from "../css-editor/css-editor.component";
 import { FontManagerComponent } from "../font-manager/font-manager.component";
+import { ResponsiveDesignEditorComponent, DevicePreset } from "../responsive-design-editor/responsive-design-editor.component";
 import {
   GlobalStyles,
   TypographySettings,
@@ -15,6 +16,7 @@ import {
   SpacingSettings,
   EffectSettings,
 } from "../../models/project.interface";
+import { ResponsiveSettings, DeviceType } from "../../models/section.interface";
 import { FontFamily } from "../../models/font.interface";
 
 @Component({
@@ -26,6 +28,13 @@ import { FontFamily } from "../../models/font.interface";
 })
 export class GlobalStylingControlsComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+
+  // Responsive design inputs and outputs
+  @Input() responsiveSettings: ResponsiveSettings | null = null;
+  @Input() currentDevice: DevicePreset | null = null;
+  @Input() enableResponsiveControls: boolean = false;
+  @Output() responsiveSettingsChange = new EventEmitter<ResponsiveSettings>();
+  @Output() deviceChange = new EventEmitter<DevicePreset>();
 
   // Current global styles
   globalStyles: GlobalStyles = {} as GlobalStyles;
@@ -743,5 +752,255 @@ export class GlobalStylingControlsComponent implements OnInit, OnDestroy {
       secondary: template.globalStyles.colors.secondary,
       background: template.globalStyles.colors.background
     };
+  }
+
+  // Responsive Design Methods
+
+  /**
+   * Handle device change from responsive editor
+   */
+  onDeviceChange(device: DevicePreset): void {
+    this.deviceChange.emit(device);
+  }
+
+  /**
+   * Handle responsive settings change
+   */
+  onResponsiveSettingsChange(settings: ResponsiveSettings): void {
+    this.responsiveSettingsChange.emit(settings);
+  }
+
+  /**
+   * Update typography with responsive considerations
+   */
+  updateTypographyResponsive(): void {
+    if (this.enableResponsiveControls && this.currentDevice) {
+      // Apply device-specific typography adjustments
+      const adjustedTypography = this.applyDeviceTypographyAdjustments(this.globalStyles.typography);
+      this.globalStylingService.updateTypography(adjustedTypography);
+    } else {
+      this.updateTypography();
+    }
+  }
+
+  /**
+   * Update colors with responsive considerations
+   */
+  updateColorsResponsive(): void {
+    if (this.enableResponsiveControls && this.currentDevice) {
+      // Apply device-specific color adjustments
+      const adjustedColors = this.applyDeviceColorAdjustments(this.globalStyles.colors);
+      this.globalStylingService.updateColors(adjustedColors);
+    } else {
+      this.updateColors();
+    }
+  }
+
+  /**
+   * Update spacing with responsive considerations
+   */
+  updateSpacingResponsive(): void {
+    if (this.enableResponsiveControls && this.currentDevice) {
+      // Apply device-specific spacing adjustments
+      const adjustedSpacing = this.applyDeviceSpacingAdjustments(this.globalStyles.spacing);
+      this.globalStylingService.updateSpacing(adjustedSpacing);
+    } else {
+      this.updateSpacing();
+    }
+  }
+
+  /**
+   * Apply device-specific typography adjustments
+   */
+  private applyDeviceTypographyAdjustments(typography: TypographySettings): TypographySettings {
+    if (!this.currentDevice) return typography;
+
+    const adjustedTypography = { ...typography };
+
+    // Apply device-specific font size adjustments
+    switch (this.currentDevice.type) {
+      case DeviceType.MOBILE:
+        // Reduce font sizes for mobile
+        adjustedTypography.fontSizes = {
+          ...typography.fontSizes,
+          h1: this.scaleFontSize(typography.fontSizes.h1, 0.8),
+          h2: this.scaleFontSize(typography.fontSizes.h2, 0.85),
+          h3: this.scaleFontSize(typography.fontSizes.h3, 0.9),
+          body: this.scaleFontSize(typography.fontSizes.body, 0.95)
+        };
+        break;
+      case DeviceType.TABLET:
+        // Slightly reduce font sizes for tablet
+        adjustedTypography.fontSizes = {
+          ...typography.fontSizes,
+          h1: this.scaleFontSize(typography.fontSizes.h1, 0.9),
+          h2: this.scaleFontSize(typography.fontSizes.h2, 0.95),
+          body: this.scaleFontSize(typography.fontSizes.body, 0.98)
+        };
+        break;
+      case DeviceType.DESKTOP:
+        // Keep original sizes for desktop
+        break;
+    }
+
+    return adjustedTypography;
+  }
+
+  /**
+   * Apply device-specific color adjustments
+   */
+  private applyDeviceColorAdjustments(colors: ColorSettings): ColorSettings {
+    if (!this.currentDevice) return colors;
+
+    const adjustedColors = { ...colors };
+
+    // Apply device-specific color adjustments if needed
+    // For example, you might want to adjust contrast for mobile devices
+    if (this.currentDevice.type === DeviceType.MOBILE) {
+      // Increase contrast for mobile readability
+      if (this.getContrastRatio(colors.text, colors.background) < 7) {
+        adjustedColors.text = this.adjustColorContrast(colors.text, colors.background);
+      }
+    }
+
+    return adjustedColors;
+  }
+
+  /**
+   * Apply device-specific spacing adjustments
+   */
+  private applyDeviceSpacingAdjustments(spacing: SpacingSettings): SpacingSettings {
+    if (!this.currentDevice) return spacing;
+
+    const adjustedSpacing = { ...spacing };
+
+    // Apply device-specific spacing adjustments
+    switch (this.currentDevice.type) {
+      case DeviceType.MOBILE:
+        // Reduce spacing for mobile
+        adjustedSpacing.baseUnit = Math.max(4, spacing.baseUnit * 0.8);
+        adjustedSpacing.sectionPadding = this.scaleSpacing(spacing.sectionPadding, 0.7);
+        adjustedSpacing.elementMargin = this.scaleSpacing(spacing.elementMargin, 0.8);
+        break;
+      case DeviceType.TABLET:
+        // Slightly reduce spacing for tablet
+        adjustedSpacing.baseUnit = Math.max(6, spacing.baseUnit * 0.9);
+        adjustedSpacing.sectionPadding = this.scaleSpacing(spacing.sectionPadding, 0.85);
+        adjustedSpacing.elementMargin = this.scaleSpacing(spacing.elementMargin, 0.9);
+        break;
+      case DeviceType.DESKTOP:
+        // Keep original spacing for desktop
+        break;
+    }
+
+    return adjustedSpacing;
+  }
+
+  /**
+   * Scale font size by a factor
+   */
+  private scaleFontSize(fontSize: string, factor: number): string {
+    const match = fontSize.match(/^(\d*\.?\d+)(rem|px|em)$/);
+    if (match) {
+      const value = parseFloat(match[1]);
+      const unit = match[2];
+      return `${(value * factor).toFixed(2)}${unit}`;
+    }
+    return fontSize;
+  }
+
+  /**
+   * Scale spacing value by a factor
+   */
+  private scaleSpacing(spacing: string, factor: number): string {
+    const match = spacing.match(/^(\d*\.?\d+)(rem|px|em)$/);
+    if (match) {
+      const value = parseFloat(match[1]);
+      const unit = match[2];
+      return `${(value * factor).toFixed(2)}${unit}`;
+    }
+    return spacing;
+  }
+
+  /**
+   * Adjust color contrast for better readability
+   */
+  private adjustColorContrast(textColor: string, backgroundColor: string): string {
+    // Simple contrast adjustment - in a real implementation, you'd use a proper color library
+    const textLuminance = this.getLuminance(textColor);
+    const bgLuminance = this.getLuminance(backgroundColor);
+    
+    if (bgLuminance > 0.5) {
+      // Light background, make text darker
+      return this.darkenColor(textColor, 0.2);
+    } else {
+      // Dark background, make text lighter
+      return this.lightenColor(textColor, 0.2);
+    }
+  }
+
+  /**
+   * Get luminance of a color
+   */
+  private getLuminance(color: string): number {
+    const hex = color.replace("#", "");
+    const r = parseInt(hex.substr(0, 2), 16) / 255;
+    const g = parseInt(hex.substr(2, 2), 16) / 255;
+    const b = parseInt(hex.substr(4, 2), 16) / 255;
+
+    const sRGB = [r, g, b].map((c) => {
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+
+    return 0.2126 * sRGB[0] + 0.7152 * sRGB[1] + 0.0722 * sRGB[2];
+  }
+
+  /**
+   * Darken a color by a factor
+   */
+  private darkenColor(color: string, factor: number): string {
+    const hex = color.replace("#", "");
+    const r = Math.max(0, parseInt(hex.substr(0, 2), 16) * (1 - factor));
+    const g = Math.max(0, parseInt(hex.substr(2, 2), 16) * (1 - factor));
+    const b = Math.max(0, parseInt(hex.substr(4, 2), 16) * (1 - factor));
+    
+    return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+  }
+
+  /**
+   * Lighten a color by a factor
+   */
+  private lightenColor(color: string, factor: number): string {
+    const hex = color.replace("#", "");
+    const r = Math.min(255, parseInt(hex.substr(0, 2), 16) + (255 - parseInt(hex.substr(0, 2), 16)) * factor);
+    const g = Math.min(255, parseInt(hex.substr(2, 2), 16) + (255 - parseInt(hex.substr(2, 2), 16)) * factor);
+    const b = Math.min(255, parseInt(hex.substr(4, 2), 16) + (255 - parseInt(hex.substr(4, 2), 16)) * factor);
+    
+    return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+  }
+
+  /**
+   * Get current device type display name
+   */
+  getCurrentDeviceTypeName(): string {
+    if (!this.currentDevice) return 'Desktop';
+    
+    switch (this.currentDevice.type) {
+      case DeviceType.MOBILE:
+        return 'Mobile';
+      case DeviceType.TABLET:
+        return 'Tablet';
+      case DeviceType.DESKTOP:
+        return 'Desktop';
+      default:
+        return 'Desktop';
+    }
+  }
+
+  /**
+   * Check if responsive controls are enabled and device is selected
+   */
+  get isResponsiveModeActive(): boolean {
+    return this.enableResponsiveControls && !!this.currentDevice;
   }
 }

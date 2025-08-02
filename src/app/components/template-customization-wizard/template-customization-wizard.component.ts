@@ -266,9 +266,34 @@ export class TemplateCustomizationWizardComponent implements OnInit {
       // Emit completion event
       this.wizardCompleted.emit({ project, customization: this.customization });
 
-      // Navigate to editor
+      // Navigate to editor with customization data
+      const queryParams: any = {
+        projectId: project.id,
+        fromWizard: "true",
+      };
+
+      // Add customization data to query params
+      if (this.customization.headerText) {
+        queryParams.headerText = this.customization.headerText;
+      }
+      if (this.customization.heroSubheading) {
+        queryParams.heroSubheading = this.customization.heroSubheading;
+      }
+      if (this.customization.imageUrl) {
+        queryParams.imageUrl = this.customization.imageUrl;
+      }
+      if (this.customization.heroImage?.url) {
+        queryParams.heroImageUrl = this.customization.heroImage.url;
+      }
+      if (this.customization.featuresTitle) {
+        queryParams.featuresTitle = this.customization.featuresTitle;
+      }
+      if (this.customization.featuresSubheading) {
+        queryParams.featuresSubheading = this.customization.featuresSubheading;
+      }
+
       await this.router.navigate(["/editor", this.template.id], {
-        queryParams: { projectId: project.id },
+        queryParams,
       });
     } catch (error) {
       console.error("Failed to complete wizard:", error);
@@ -286,7 +311,7 @@ export class TemplateCustomizationWizardComponent implements OnInit {
   /**
    * Map SectionType to string
    */
-  private mapSectionTypeToString(type: any): string {
+  public mapSectionTypeToString(type: any): string {
     switch (type) {
       case 0: // SectionType.HERO
         return "hero";
@@ -339,9 +364,11 @@ export class TemplateCustomizationWizardComponent implements OnInit {
    * Handle hero image selection
    */
   onHeroImageSelected(asset: Asset | null): void {
+    console.log("Hero image selected in wizard:", asset);
     this.customization.heroImage = asset || undefined;
     // Also update the legacy imageUrl for backward compatibility
     this.customization.imageUrl = asset?.url || undefined;
+    console.log("Updated customization:", this.customization);
   }
 
   /**
@@ -349,5 +376,15 @@ export class TemplateCustomizationWizardComponent implements OnInit {
    */
   get allowedImageTypes(): AssetType[] {
     return [AssetType.IMAGE];
+  }
+
+  /**
+   * Handle image error by setting fallback image
+   */
+  onImageError(event: Event): void {
+    const target = event.target as HTMLImageElement;
+    if (target) {
+      target.src = 'assets/images/template-placeholder.png';
+    }
   }
 }

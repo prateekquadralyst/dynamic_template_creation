@@ -1,5 +1,9 @@
 /* You can add global styles to this file, and also import other style files */
 
+/* Import UI Improvements Styles */
+@import './app/styles/accessibility.css';
+@import './app/styles/drag-drop.css';
+
 /* Global scrolling improvements */
 * {
   box-sizing: border-box;

@@ -1,0 +1,356 @@
+/* Drag and Drop Styles */
+
+/* Global drag states */
+.drag-in-progress {
+  cursor: grabbing !important;
+}
+
+.drag-in-progress * {
+  pointer-events: none;
+}
+
+/* Draggable elements */
+.draggable {
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.draggable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.draggable.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  z-index: 1000;
+}
+
+/* Drag handles */
+.drag-handle {
+  cursor: grab;
+  color: #6c757d;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drag-handle:hover {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle i {
+  font-size: 1rem;
+}
+
+/* Drop zones */
+.drop-zone {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.drop-zone.drag-over {
+  background: #e3f2fd;
+  border: 2px dashed #2196f3;
+  border-radius: 8px;
+}
+
+.drop-zone.drag-over-valid {
+  background: #e8f5e8;
+  border: 2px dashed #4caf50;
+  border-radius: 8px;
+}
+
+.drop-zone.drag-over-invalid {
+  background: #ffebee;
+  border: 2px dashed #f44336;
+  border-radius: 8px;
+}
+
+/* Drop zone indicators */
+.drop-zone::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  border-radius: 8px;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.drop-zone.drag-over::before {
+  background: rgba(33, 150, 243, 0.1);
+}
+
+.drop-zone.drag-over-valid::before {
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.drop-zone.drag-over-invalid::before {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+/* Drop success/failure animations */
+.drop-success {
+  animation: dropSuccess 0.3s ease;
+}
+
+@keyframes dropSuccess {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); background: #e8f5e8; }
+  100% { transform: scale(1); }
+}
+
+.drop-failed {
+  animation: dropFailed 0.3s ease;
+}
+
+@keyframes dropFailed {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+  100% { transform: translateX(0); }
+}
+
+/* Drag overlay */
+.drag-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 999;
+  pointer-events: none;
+}
+
+/* Drag preview */
+.drag-preview {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1001;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 0.875rem;
+  color: #495057;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Feature list drag and drop */
+.feature-items {
+  position: relative;
+}
+
+.feature-item {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.feature-item.draggable {
+  border: 1px solid transparent;
+}
+
+.feature-item.draggable:hover {
+  border-color: #dee2e6;
+}
+
+.feature-item .drag-handle {
+  position: absolute;
+  left: -30px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.feature-item:hover .drag-handle {
+  opacity: 1;
+}
+
+/* Drop insertion indicator */
+.drop-insertion-indicator {
+  height: 2px;
+  background: #007bff;
+  border-radius: 1px;
+  margin: 4px 0;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.drop-insertion-indicator.active {
+  opacity: 1;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Section reordering */
+.panel-section.draggable {
+  border: 1px solid transparent;
+  margin: 2px 0;
+}
+
+.panel-section.draggable:hover {
+  border-color: #dee2e6;
+  background: #f8f9fa;
+}
+
+.panel-section .drag-handle {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.panel-section:hover .drag-handle {
+  opacity: 1;
+}
+
+/* Template card drag and drop */
+.template-card.draggable {
+  transition: all 0.2s ease;
+}
+
+.template-card.draggable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.template-card.dragging {
+  opacity: 0.7;
+  transform: rotate(1deg) scale(0.95);
+}
+
+/* Mobile drag and drop adjustments */
+@media (max-width: 768px) {
+  .drag-handle {
+    padding: 8px;
+    font-size: 1.125rem;
+  }
+  
+  .feature-item .drag-handle {
+    position: static;
+    opacity: 1;
+    margin-right: 8px;
+  }
+  
+  .panel-section .drag-handle {
+    position: static;
+    opacity: 1;
+    margin-left: auto;
+  }
+  
+  .drag-preview {
+    font-size: 1rem;
+    padding: 12px 16px;
+  }
+}
+
+/* Touch-specific styles */
+@media (pointer: coarse) {
+  .draggable {
+    cursor: default;
+  }
+  
+  .drag-handle {
+    cursor: default;
+    padding: 12px;
+  }
+  
+  .drop-zone {
+    min-height: 60px;
+  }
+}
+
+/* High contrast mode */
+.high-contrast .drop-zone.drag-over {
+  background: #fff;
+  border: 3px solid #000;
+}
+
+.high-contrast .drop-zone.drag-over-valid {
+  background: #fff;
+  border: 3px solid #008000;
+}
+
+.high-contrast .drop-zone.drag-over-invalid {
+  background: #fff;
+  border: 3px solid #ff0000;
+}
+
+.high-contrast .drag-handle {
+  border: 1px solid #000;
+  background: #fff;
+  color: #000;
+}
+
+/* Reduced motion */
+.reduced-motion .draggable,
+.reduced-motion .drop-zone,
+.reduced-motion .drag-handle,
+.reduced-motion .feature-item {
+  transition: none !important;
+  animation: none !important;
+}
+
+.reduced-motion .draggable:hover {
+  transform: none;
+}
+
+.reduced-motion .drop-insertion-indicator.active {
+  animation: none;
+  opacity: 1;
+}
+
+/* Focus indicators for keyboard navigation */
+.focus-indicators .draggable:focus,
+.focus-indicators .drag-handle:focus {
+  outline: 3px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Screen reader optimizations */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.screen-reader-optimized .drag-handle::after {
+  content: ' (draggable)';
+  position: absolute;
+  left: -9999px;
+}
+
+.screen-reader-optimized .drop-zone::after {
+  content: ' (drop zone)';
+  position: absolute;
+  left: -9999px;
+}

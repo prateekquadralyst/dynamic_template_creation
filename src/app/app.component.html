@@ -45,6 +45,8 @@
 
     <!-- Panel Content -->
     <div class="editor-content" [ngClass]="{ hidden: isEditorCollapsed }">
+      <!-- UI Improvements Toolbar -->
+      <app-ui-improvements-toolbar></app-ui-improvements-toolbar>
       <!-- Global Styling Controls -->
       <div class="panel-section" [ngClass]="{ collapsed: !sections.style }">
         <div class="panel-header">
@@ -161,7 +163,7 @@
               id="headerText"
               type="text"
               [(ngModel)]="headerText"
-              (ngModelChange)="updateTemplate()"
+              (ngModelChange)="updateHeaderText($event)"
               placeholder="Enter header"
             />
           </div>
@@ -172,7 +174,7 @@
               id="imageUrl"
               type="text"
               [(ngModel)]="imageUrl"
-              (ngModelChange)="updateTemplate()"
+              (ngModelChange)="updateImageUrl($event)"
               placeholder="Enter URL"
             />
           </div>
@@ -183,7 +185,7 @@
               id="heroSubheading"
               type="text"
               [(ngModel)]="heroSubheading"
-              (ngModelChange)="updateTemplate()"
+              (ngModelChange)="updateHeroSubheading($event)"
               placeholder="Enter subheading"
             />
           </div>
@@ -232,6 +234,179 @@
                 placeholder="Enter Hero CSS styles"
               ></textarea>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- About Section Controls -->
+      <div class="panel-section" [ngClass]="{ collapsed: !sections.about }">
+        <div class="panel-header">
+          <div class="panel-header-main" (click)="toggleSection('about')">
+            <div class="panel-title">
+              <i class="bi bi-person-circle"></i>
+              <span>About Section</span>
+            </div>
+            <i
+              class="bi"
+              [ngClass]="
+                sections.about ? 'bi-chevron-down' : 'bi-chevron-right'
+              "
+            ></i>
+          </div>
+          <div class="section-toggle" (click)="$event.stopPropagation()">
+            <label class="toggle-label">
+              <input
+                type="checkbox"
+                [(ngModel)]="sectionEnabled.about"
+                (ngModelChange)="updateTemplate()"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="panel-body" *ngIf="sections.about">
+          <div class="form-group">
+            <label for="aboutTitle">Section Title</label>
+            <input
+              id="aboutTitle"
+              type="text"
+              [(ngModel)]="aboutTitle"
+              (ngModelChange)="updateAboutTitle($event)"
+              placeholder="Enter title"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="aboutDescription">Description</label>
+            <textarea
+              id="aboutDescription"
+              [(ngModel)]="aboutDescription"
+              (ngModelChange)="updateAboutDescription($event)"
+              placeholder="Enter description"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="aboutImageUrl">Image URL</label>
+            <input
+              id="aboutImageUrl"
+              type="text"
+              [(ngModel)]="aboutImageUrl"
+              (ngModelChange)="updateAboutImageUrl($event)"
+              placeholder="Enter image URL"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Services Section Controls -->
+      <div class="panel-section" [ngClass]="{ collapsed: !sections.services }">
+        <div class="panel-header">
+          <div class="panel-header-main" (click)="toggleSection('services')">
+            <div class="panel-title">
+              <i class="bi bi-tools"></i>
+              <span>Services Section</span>
+            </div>
+            <i
+              class="bi"
+              [ngClass]="
+                sections.services ? 'bi-chevron-down' : 'bi-chevron-right'
+              "
+            ></i>
+          </div>
+          <div class="section-toggle" (click)="$event.stopPropagation()">
+            <label class="toggle-label">
+              <input
+                type="checkbox"
+                [(ngModel)]="sectionEnabled.services"
+                (ngModelChange)="updateTemplate()"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="panel-body" *ngIf="sections.services">
+          <div class="form-group">
+            <label for="servicesTitle">Section Title</label>
+            <input
+              id="servicesTitle"
+              type="text"
+              [(ngModel)]="servicesTitle"
+              (ngModelChange)="updateServicesTitle($event)"
+              placeholder="Enter title"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="servicesSubheading">Section Subheading</label>
+            <input
+              id="servicesSubheading"
+              type="text"
+              [(ngModel)]="servicesSubheading"
+              (ngModelChange)="updateServicesSubheading($event)"
+              placeholder="Enter subheading"
+            />
+          </div>
+
+          <div class="services-list">
+            <div class="list-header">
+              <h5>Services</h5>
+            </div>
+
+            <div class="service-items">
+              <div
+                class="service-item"
+                *ngFor="let service of services; let i = index"
+              >
+                <div class="service-item-header">
+                  <span class="service-badge">Service {{ i + 1 }}</span>
+                  <button
+                    class="delete-btn"
+                    (click)="removeService(i)"
+                    title="Remove service"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+
+                <div class="form-group">
+                  <label>Title</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="service.title"
+                    (ngModelChange)="updateServiceTitle(i, $event)"
+                    placeholder="Service title"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Description</label>
+                  <textarea
+                    [(ngModel)]="service.description"
+                    (ngModelChange)="updateServiceDescription(i, $event)"
+                    placeholder="Service description"
+                  ></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label>Icon (Bootstrap Icon class)</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="service.icon"
+                    (ngModelChange)="updateServiceIcon(i, $event)"
+                    placeholder="e.g., bi-gear"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button class="add-service-btn" (click)="addService()">
+              <i class="bi bi-plus"></i>
+              Add Service
+            </button>
           </div>
         </div>
       </div>
@@ -294,7 +469,7 @@
               id="featuresTitle"
               type="text"
               [(ngModel)]="featuresTitle"
-              (ngModelChange)="updateTemplate()"
+              (ngModelChange)="updateFeaturesTitle($event)"
               placeholder="Enter title"
             />
           </div>
@@ -305,7 +480,7 @@
               id="featuresSubheading"
               type="text"
               [(ngModel)]="featuresSubheading"
-              (ngModelChange)="updateTemplate()"
+              (ngModelChange)="updateFeaturesSubheading($event)"
               placeholder="Enter subheading"
             />
           </div>
@@ -367,12 +542,23 @@
               <h5>Features</h5>
             </div>
 
-            <div class="feature-items">
+            <div class="feature-items drop-zone" id="features-drop-zone">
               <div
-                class="feature-item"
+                class="feature-item draggable"
                 *ngFor="let feature of features; let i = index"
+                [attr.data-index]="i"
+                draggable="true"
+                (dragstart)="onFeatureDragStart($event, i)"
+                (dragend)="onFeatureDragEnd($event)"
               >
                 <div class="feature-item-header">
+                  <div
+                    class="drag-handle"
+                    title="Drag to reorder"
+                    aria-label="Drag to reorder feature"
+                  >
+                    <i class="bi bi-grip-vertical"></i>
+                  </div>
                   <span class="feature-badge">Feature {{ i + 1 }}</span>
                   <button
                     class="delete-btn"
@@ -389,7 +575,7 @@
                   <input
                     type="text"
                     [(ngModel)]="feature.title"
-                    (ngModelChange)="updateTemplate()"
+                    (ngModelChange)="updateFeatureTitle(i, $event)"
                     placeholder="Feature title"
                   />
                 </div>
@@ -398,7 +584,7 @@
                   <label>Message</label>
                   <textarea
                     [(ngModel)]="feature.message"
-                    (ngModelChange)="updateTemplate()"
+                    (ngModelChange)="updateFeatureMessage(i, $event)"
                     placeholder="Feature description"
                   ></textarea>
                 </div>
@@ -408,6 +594,347 @@
             <button class="add-feature-btn" (click)="addFeature()">
               <i class="bi bi-plus"></i>
               Add Feature
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Testimonials Section Controls -->
+      <div
+        class="panel-section"
+        [ngClass]="{ collapsed: !sections.testimonials }"
+      >
+        <div class="panel-header">
+          <div
+            class="panel-header-main"
+            (click)="toggleSection('testimonials')"
+          >
+            <div class="panel-title">
+              <i class="bi bi-chat-quote"></i>
+              <span>Testimonials Section</span>
+            </div>
+            <i
+              class="bi"
+              [ngClass]="
+                sections.testimonials ? 'bi-chevron-down' : 'bi-chevron-right'
+              "
+            ></i>
+          </div>
+          <div class="section-toggle" (click)="$event.stopPropagation()">
+            <label class="toggle-label">
+              <input
+                type="checkbox"
+                [(ngModel)]="sectionEnabled.testimonials"
+                (ngModelChange)="updateTemplate()"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="panel-body" *ngIf="sections.testimonials">
+          <div class="form-group">
+            <label for="testimonialsTitle">Section Title</label>
+            <input
+              id="testimonialsTitle"
+              type="text"
+              [(ngModel)]="testimonialsTitle"
+              (ngModelChange)="updateTestimonialsTitle($event)"
+              placeholder="Enter title"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="testimonialsSubheading">Section Subheading</label>
+            <input
+              id="testimonialsSubheading"
+              type="text"
+              [(ngModel)]="testimonialsSubheading"
+              (ngModelChange)="updateTestimonialsSubheading($event)"
+              placeholder="Enter subheading"
+            />
+          </div>
+
+          <div class="testimonials-list">
+            <div class="list-header">
+              <h5>Testimonials</h5>
+            </div>
+
+            <div class="testimonial-items">
+              <div
+                class="testimonial-item"
+                *ngFor="let testimonial of testimonials; let i = index"
+              >
+                <div class="testimonial-item-header">
+                  <span class="testimonial-badge">Testimonial {{ i + 1 }}</span>
+                  <button
+                    class="delete-btn"
+                    (click)="removeTestimonial(i)"
+                    title="Remove testimonial"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+
+                <div class="form-group">
+                  <label>Name</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="testimonial.name"
+                    (ngModelChange)="updateTestimonialName(i, $event)"
+                    placeholder="Customer name"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Role/Company</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="testimonial.role"
+                    (ngModelChange)="updateTestimonialRole(i, $event)"
+                    placeholder="Job title or company"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Message</label>
+                  <textarea
+                    [(ngModel)]="testimonial.message"
+                    (ngModelChange)="updateTestimonialMessage(i, $event)"
+                    placeholder="Testimonial message"
+                    rows="3"
+                  ></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label>Image URL</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="testimonial.image"
+                    (ngModelChange)="updateTestimonialImage(i, $event)"
+                    placeholder="Profile image URL"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label>Rating (1-5)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    [(ngModel)]="testimonial.rating"
+                    (ngModelChange)="updateTestimonialRating(i, $event)"
+                    placeholder="5"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button class="add-testimonial-btn" (click)="addTestimonial()">
+              <i class="bi bi-plus"></i>
+              Add Testimonial
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact Section Controls -->
+      <div class="panel-section" [ngClass]="{ collapsed: !sections.contact }">
+        <div class="panel-header">
+          <div class="panel-header-main" (click)="toggleSection('contact')">
+            <div class="panel-title">
+              <i class="bi bi-envelope"></i>
+              <span>Contact Section</span>
+            </div>
+            <i
+              class="bi"
+              [ngClass]="
+                sections.contact ? 'bi-chevron-down' : 'bi-chevron-right'
+              "
+            ></i>
+          </div>
+          <div class="section-toggle" (click)="$event.stopPropagation()">
+            <label class="toggle-label">
+              <input
+                type="checkbox"
+                [(ngModel)]="sectionEnabled.contact"
+                (ngModelChange)="updateTemplate()"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="panel-body" *ngIf="sections.contact">
+          <div class="form-group">
+            <label for="contactTitle">Section Title</label>
+            <input
+              id="contactTitle"
+              type="text"
+              [(ngModel)]="contactTitle"
+              (ngModelChange)="updateContactTitle($event)"
+              placeholder="Enter title"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="contactSubheading">Section Subheading</label>
+            <input
+              id="contactSubheading"
+              type="text"
+              [(ngModel)]="contactSubheading"
+              (ngModelChange)="updateContactSubheading($event)"
+              placeholder="Enter subheading"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="contactEmail">Email</label>
+            <input
+              id="contactEmail"
+              type="email"
+              [(ngModel)]="contactEmail"
+              (ngModelChange)="updateContactEmail($event)"
+              placeholder="your@email.com"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="contactPhone">Phone</label>
+            <input
+              id="contactPhone"
+              type="tel"
+              [(ngModel)]="contactPhone"
+              (ngModelChange)="updateContactPhone($event)"
+              placeholder="+1 (555) 123-4567"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="contactAddress">Address</label>
+            <textarea
+              id="contactAddress"
+              [(ngModel)]="contactAddress"
+              (ngModelChange)="updateContactAddress($event)"
+              placeholder="Enter address"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Section Controls -->
+      <div class="panel-section" [ngClass]="{ collapsed: !sections.footer }">
+        <div class="panel-header">
+          <div class="panel-header-main" (click)="toggleSection('footer')">
+            <div class="panel-title">
+              <i class="bi bi-layout-text-sidebar-reverse"></i>
+              <span>Footer Section</span>
+            </div>
+            <i
+              class="bi"
+              [ngClass]="
+                sections.footer ? 'bi-chevron-down' : 'bi-chevron-right'
+              "
+            ></i>
+          </div>
+          <div class="section-toggle" (click)="$event.stopPropagation()">
+            <label class="toggle-label">
+              <input
+                type="checkbox"
+                [(ngModel)]="sectionEnabled.footer"
+                (ngModelChange)="updateTemplate()"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="panel-body" *ngIf="sections.footer">
+          <div class="form-group">
+            <label for="footerCompanyName">Company Name</label>
+            <input
+              id="footerCompanyName"
+              type="text"
+              [(ngModel)]="footerCompanyName"
+              (ngModelChange)="updateFooterCompanyName($event)"
+              placeholder="Your Company"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="footerDescription">Description</label>
+            <textarea
+              id="footerDescription"
+              [(ngModel)]="footerDescription"
+              (ngModelChange)="updateFooterDescription($event)"
+              placeholder="Brief company description"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="footerCopyright">Copyright Text</label>
+            <input
+              id="footerCopyright"
+              type="text"
+              [(ngModel)]="footerCopyright"
+              (ngModelChange)="updateFooterCopyright($event)"
+              placeholder="© 2024 Your Company. All rights reserved."
+            />
+          </div>
+
+          <div class="social-links">
+            <div class="list-header">
+              <h5>Social Links</h5>
+            </div>
+
+            <div class="social-link-items">
+              <div
+                class="social-link-item"
+                *ngFor="let link of socialLinks; let i = index"
+              >
+                <div class="social-link-header">
+                  <span class="social-badge">{{ link.platform }}</span>
+                  <button
+                    class="delete-btn"
+                    (click)="removeSocialLink(i)"
+                    title="Remove social link"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+
+                <div class="form-group">
+                  <label>Platform</label>
+                  <select
+                    [(ngModel)]="link.platform"
+                    (ngModelChange)="updateSocialLinkPlatform(i, $event)"
+                  >
+                    <option value="Facebook">Facebook</option>
+                    <option value="Twitter">Twitter</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="LinkedIn">LinkedIn</option>
+                    <option value="YouTube">YouTube</option>
+                    <option value="GitHub">GitHub</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label>URL</label>
+                  <input
+                    type="url"
+                    [(ngModel)]="link.url"
+                    (ngModelChange)="updateSocialLinkUrl(i, $event)"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button class="add-social-link-btn" (click)="addSocialLink()">
+              <i class="bi bi-plus"></i>
+              Add Social Link
             </button>
           </div>
         </div>
@@ -469,7 +996,7 @@
           <i class="bi bi-plus"></i>
           Create Template
         </button>
-        <button
+        <!-- <button
           class="gallery-btn"
           *ngIf="activeTemplateType !== 'style'"
           (click)="openTemplateGallery()"
@@ -477,7 +1004,7 @@
         >
           <i class="bi bi-grid-3x3"></i>
           Gallery
-        </button>
+        </button> -->
         <button class="close-panel-btn" (click)="closeTemplatePanel()">
           <i class="bi bi-x-lg"></i>
         </button>
@@ -624,7 +1151,7 @@
         </button>
 
         <!-- Responsive Sidebar Toggle -->
-        <button 
+        <button
           class="responsive-sidebar-btn"
           (click)="toggleResponsiveSidebar()"
           [ngClass]="{ active: showResponsiveSidebar }"
@@ -663,8 +1190,34 @@
         [heroCss]="sectionEnabled.hero ? heroCss : ''"
         [featuresHtml]="sectionEnabled.features ? featuresHtml : ''"
         [featuresCss]="sectionEnabled.features ? featuresCss : ''"
-        [testimonialsHtml]="sectionEnabled.testimonial ? testimonialsHtml : ''"
-        [testimonialsCss]="sectionEnabled.testimonial ? testimonialsCss : ''"
+        [aboutHtml]="sectionEnabled.about ? aboutHtml : ''"
+        [aboutCss]="sectionEnabled.about ? aboutCss : ''"
+        [aboutTitle]="aboutTitle"
+        [aboutDescription]="aboutDescription"
+        [aboutImageUrl]="aboutImageUrl"
+        [servicesHtml]="sectionEnabled.services ? servicesHtml : ''"
+        [servicesCss]="sectionEnabled.services ? servicesCss : ''"
+        [servicesTitle]="servicesTitle"
+        [servicesSubheading]="servicesSubheading"
+        [services]="services"
+        [testimonialsHtml]="sectionEnabled.testimonials ? testimonialsHtml : ''"
+        [testimonialsCss]="sectionEnabled.testimonials ? testimonialsCss : ''"
+        [testimonialsTitle]="testimonialsTitle"
+        [testimonialsSubheading]="testimonialsSubheading"
+        [testimonials]="testimonials"
+        [contactHtml]="sectionEnabled.contact ? contactHtml : ''"
+        [contactCss]="sectionEnabled.contact ? contactCss : ''"
+        [contactTitle]="contactTitle"
+        [contactSubheading]="contactSubheading"
+        [contactEmail]="contactEmail"
+        [contactPhone]="contactPhone"
+        [contactAddress]="contactAddress"
+        [footerHtml]="sectionEnabled.footer ? footerHtml : ''"
+        [footerCss]="sectionEnabled.footer ? footerCss : ''"
+        [footerCompanyName]="footerCompanyName"
+        [footerDescription]="footerDescription"
+        [footerCopyright]="footerCopyright"
+        [socialLinks]="socialLinks"
         [featuresTitle]="featuresTitle"
         [featuresSubheading]="featuresSubheading"
         [features]="features"
@@ -686,13 +1239,6 @@
 
   <!-- Template Builder Modal -->
   <app-template-builder #templateBuilder></app-template-builder>
-
-  <!-- Template Gallery Modal -->
-  <app-template-gallery
-    *ngIf="showTemplateGallery"
-    (templateSelected)="onTemplateGallerySelection($event)"
-    (closeGallery)="closeTemplateGallery()"
-  ></app-template-gallery>
 
   <!-- Responsive Sidebar -->
   <app-responsive-sidebar
@@ -719,4 +1265,7 @@
 
   <!-- CSS Injector for Global Styles -->
   <app-css-injector></app-css-injector>
+
+  <!-- Notification Container -->
+  <app-notification-container></app-notification-container>
 </div>

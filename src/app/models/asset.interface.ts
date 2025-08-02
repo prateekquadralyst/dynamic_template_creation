@@ -4,6 +4,7 @@ export interface Asset {
   name: string;
   type: AssetType;
   url: string;
+  thumbnailUrl?: string;
   size: number;
   dimensions?: AssetDimensions;
   optimizedVersions?: OptimizedAsset[];
@@ -25,6 +26,8 @@ export interface OptimizedAsset {
   size: number;
   quality?: number;
   dimensions?: AssetDimensions;
+  deviceType?: import('./section.interface').DeviceType;
+  pixelRatio?: number;
 }
 
 export interface AssetMetadata {

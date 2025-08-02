@@ -1,0 +1,280 @@
+<div class="responsive-design-editor" [class.visible]="isVisible">
+  <!-- Device Preview Switcher -->
+  <div class="device-switcher">
+    <h3 class="section-title">
+      <i class="bi bi-phone"></i>
+      Device Preview
+    </h3>
+    
+    <div class="device-presets">
+      <button
+        *ngFor="let device of devicePresets"
+        class="device-preset-btn"
+        [class.active]="isDeviceSelected(device)"
+        [title]="device.name + ' (' + device.width + 'x' + device.height + ')'"
+        (click)="selectDevice(device)">
+        <i class="bi" [ngClass]="getDeviceIcon(device)"></i>
+        <span class="device-name">{{ device.name }}</span>
+        <span class="device-dimensions">{{ device.width }}×{{ device.height }}</span>
+      </button>
+    </div>
+
+    <!-- Current Device Info -->
+    <div class="current-device-info">
+      <div class="device-details">
+        <h4>{{ selectedDevice.name }}</h4>
+        <div class="device-specs">
+          <span class="spec">{{ selectedDevice.width }}×{{ selectedDevice.height }}</span>
+          <span class="spec">{{ selectedDevice.pixelRatio }}x DPR</span>
+          <span class="spec">{{ selectedDevice.type | titlecase }}</span>
+        </div>
+      </div>
+      
+      <div class="device-options">
+        <label class="option-toggle">
+          <input 
+            type="checkbox" 
+            [(ngModel)]="simulateTouchInteractions"
+            (change)="updateDeviceSimulation()">
+          <span>Touch Simulation</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Device Simulator -->
+  <div class="device-simulator-container">
+    <div 
+      #deviceSimulator
+      class="device-simulator"
+      [class]="selectedDevice.type + '-device'">
+      
+      <!-- Device Frame -->
+      <div class="device-frame">
+        <div class="device-screen">
+          <iframe
+            #previewFrame
+            class="preview-frame"
+            [src]="'about:blank'"
+            [width]="selectedDevice.width"
+            [height]="selectedDevice.height"
+            frameborder="0"
+            scrolling="auto">
+          </iframe>
+        </div>
+        
+        <!-- Device Controls (for mobile devices) -->
+        <div class="device-controls" *ngIf="selectedDevice.type === 'mobile'">
+          <button class="control-btn home-btn" title="Home">
+            <i class="bi bi-circle"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Device Shadow -->
+      <div class="device-shadow"></div>
+    </div>
+
+    <!-- Simulator Controls -->
+    <div class="simulator-controls">
+      <button 
+        class="control-btn"
+        (click)="updateDeviceSimulation()"
+        title="Refresh Preview">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+      
+      <button 
+        class="control-btn"
+        [class.active]="showIssuesPanel"
+        (click)="toggleIssuesPanel()"
+        title="Show Issues">
+        <i class="bi bi-exclamation-triangle"></i>
+        <span class="badge" *ngIf="detectedIssues.length > 0">{{ detectedIssues.length }}</span>
+      </button>
+      
+      <button 
+        class="control-btn"
+        [class.active]="showBreakpointEditor"
+        (click)="toggleBreakpointEditor()"
+        title="Edit Breakpoints">
+        <i class="bi bi-rulers"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Breakpoint Editor -->
+  <div class="breakpoint-editor" [class.visible]="showBreakpointEditor">
+    <h3 class="section-title">
+      <i class="bi bi-rulers"></i>
+      Breakpoint Editor
+    </h3>
+
+    <!-- Current Breakpoints -->
+    <div class="current-breakpoints">
+      <div 
+        *ngFor="let breakpoint of responsiveSettings.breakpoints; let i = index"
+        class="breakpoint-item">
+        <div class="breakpoint-info">
+          <span class="breakpoint-name">{{ breakpoint.name }}</span>
+          <span class="breakpoint-range">
+            {{ breakpoint.minWidth }}px
+            <span *ngIf="breakpoint.maxWidth"> - {{ breakpoint.maxWidth }}px</span>
+            <span *ngIf="!breakpoint.maxWidth"> +</span>
+          </span>
+        </div>
+        
+        <div class="breakpoint-actions">
+          <button 
+            class="action-btn edit-btn"
+            title="Edit Breakpoint">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button 
+            class="action-btn delete-btn"
+            (click)="removeBreakpoint(i)"
+            title="Delete Breakpoint">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add New Breakpoint -->
+    <div class="add-breakpoint">
+      <h4>Add Custom Breakpoint</h4>
+      <div class="breakpoint-form">
+        <div class="form-group">
+          <label>Name</label>
+          <input 
+            type="text" 
+            [(ngModel)]="customBreakpoint.name"
+            placeholder="e.g., large-mobile"
+            class="form-control">
+        </div>
+        
+        <div class="form-group">
+          <label>Min Width (px)</label>
+          <input 
+            type="number" 
+            [(ngModel)]="customBreakpoint.minWidth"
+            placeholder="480"
+            class="form-control">
+        </div>
+        
+        <div class="form-group">
+          <label>Max Width (px) <small>(optional)</small></label>
+          <input 
+            type="number" 
+            [(ngModel)]="customBreakpoint.maxWidth"
+            placeholder="767"
+            class="form-control">
+        </div>
+        
+        <button 
+          class="btn btn-primary"
+          (click)="addBreakpoint()"
+          [disabled]="!customBreakpoint.name || customBreakpoint.minWidth === undefined">
+          <i class="bi bi-plus"></i>
+          Add Breakpoint
+        </button>
+      </div>
+    </div>
+
+    <!-- Current Breakpoint Indicator -->
+    <div class="current-breakpoint" *ngIf="getCurrentBreakpoint() as currentBp">
+      <div class="indicator">
+        <i class="bi bi-check-circle-fill"></i>
+        Current: <strong>{{ currentBp.name }}</strong>
+        ({{ selectedDevice.width }}px matches {{ currentBp.minWidth }}px
+        <span *ngIf="currentBp.maxWidth">- {{ currentBp.maxWidth }}px</span>)
+      </div>
+    </div>
+  </div>
+
+  <!-- Responsive Issues Panel -->
+  <div class="issues-panel" [class.visible]="showIssuesPanel">
+    <h3 class="section-title">
+      <i class="bi bi-exclamation-triangle"></i>
+      Responsive Issues
+      <span class="issue-count" *ngIf="detectedIssues.length > 0">({{ detectedIssues.length }})</span>
+    </h3>
+
+    <!-- Analysis Status -->
+    <div class="analysis-status" *ngIf="isAnalyzing">
+      <div class="spinner"></div>
+      <span>Analyzing responsive layout...</span>
+    </div>
+
+    <!-- Issues List -->
+    <div class="issues-list" *ngIf="!isAnalyzing">
+      <div 
+        *ngFor="let issue of detectedIssues"
+        class="issue-item"
+        [ngClass]="getIssueSeverityClass(issue.severity)">
+        
+        <div class="issue-header">
+          <i class="bi" 
+             [ngClass]="{
+               'bi-exclamation-triangle-fill': issue.type === 'warning',
+               'bi-x-circle-fill': issue.type === 'error'
+             }"></i>
+          <span class="issue-type">{{ issue.type | titlecase }}</span>
+          <span class="issue-severity">{{ issue.severity | titlecase }}</span>
+        </div>
+        
+        <div class="issue-content">
+          <p class="issue-message">{{ issue.message }}</p>
+          
+          <div class="issue-details" *ngIf="issue.element || issue.breakpoint">
+            <span *ngIf="issue.element" class="detail">Element: {{ issue.element }}</span>
+            <span *ngIf="issue.breakpoint" class="detail">Breakpoint: {{ issue.breakpoint }}</span>
+          </div>
+          
+          <div class="issue-suggestion" *ngIf="issue.suggestion">
+            <i class="bi bi-lightbulb"></i>
+            <span>{{ issue.suggestion }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Issues Message -->
+      <div class="no-issues" *ngIf="detectedIssues.length === 0">
+        <i class="bi bi-check-circle-fill"></i>
+        <p>No responsive issues detected!</p>
+        <small>Your layout looks good across all breakpoints.</small>
+      </div>
+    </div>
+
+    <!-- Analysis Actions -->
+    <div class="analysis-actions">
+      <button 
+        class="btn btn-secondary"
+        (click)="analyzeResponsiveIssues()"
+        [disabled]="isAnalyzing">
+        <i class="bi bi-arrow-clockwise"></i>
+        Re-analyze
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Touch Gestures Indicator -->
+  <div class="touch-gestures" *ngIf="simulateTouchInteractions && touchGestures.length > 0">
+    <h4>Recent Touch Gestures</h4>
+    <div class="gesture-list">
+      <div 
+        *ngFor="let gesture of touchGestures.slice(-5)"
+        class="gesture-item">
+        <i class="bi" 
+           [ngClass]="{
+             'bi-hand-index': gesture.type === 'tap',
+             'bi-arrows-move': gesture.type === 'swipe',
+             'bi-zoom-in': gesture.type === 'pinch',
+             'bi-mouse': gesture.type === 'scroll'
+           }"></i>
+        <span>{{ gesture.type | titlecase }}</span>
+        <small>{{ gesture.duration }}ms</small>
+      </div>
+    </div>
+  </div>
+</div>

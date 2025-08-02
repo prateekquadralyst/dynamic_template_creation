@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { AssetService } from '../../services/asset.service';
 import { AssetOptimizationComponent } from '../asset-picker/asset-optimization.component';
+import { DevicePreset } from '../responsive-design-editor/responsive-design-editor.component';
 import { 
   Asset, 
   AssetType, 
@@ -13,6 +14,7 @@ import {
   AssetUsage,
   AssetProcessingJob
 } from '../../models/asset.interface';
+import { DeviceType } from '../../models/section.interface';
 
 export interface AssetViewMode {
   GRID: 'grid';
@@ -36,6 +38,11 @@ export interface AssetFilter {
 export class AssetManagerComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('dropZone') dropZone!: ElementRef<HTMLDivElement>;
+
+  // Responsive design inputs
+  @Input() currentDevice: DevicePreset | null = null;
+  @Input() enableResponsiveOptimization: boolean = false;
+  @Output() assetOptimizedForDevice = new EventEmitter<{ asset: Asset; device: DevicePreset }>();
 
   // Component state
   assets: Asset[] = [];
@@ -473,5 +480,370 @@ export class AssetManagerComponent implements OnInit, OnDestroy {
       [AssetType.OTHER]: '#795548'
     };
     return colors[type] || '#795548';
+  }
+
+  // Responsive Asset Management Methods
+
+  /**
+   * Optimize asset for current device
+   */
+  async optimizeAssetForDevice(asset: Asset): Promise<void> {
+    if (!this.currentDevice || !this.enableResponsiveOptimization) {
+      return;
+    }
+
+    try {
+      const optimizationOptions = this.getDeviceOptimizationOptions(this.currentDevice);
+      const optimizedAsset = await this.assetService.optimizeAsset(asset.id, optimizationOptions);
+      
+      this.assetOptimizedForDevice.emit({ 
+        asset: optimizedAsset, 
+        device: this.currentDevice 
+      });
+
+      console.log(`Optimized asset ${asset.name} for ${this.currentDevice.name}`);
+    } catch (error) {
+      console.error('Failed to optimize asset for device:', error);
+    }
+  }
+
+  /**
+   * Optimize selected assets for current device
+   */
+  async optimizeSelectedAssetsForDevice(): Promise<void> {
+    if (!this.hasSelection || !this.currentDevice || !this.enableResponsiveOptimization) {
+      return;
+    }
+
+    const assetIds = Array.from(this.selectedAssets);
+    const optimizationOptions = this.getDeviceOptimizationOptions(this.currentDevice);
+
+    try {
+      for (const assetId of assetIds) {
+        const asset = this.assets.find(a => a.id === assetId);
+        if (asset && asset.type === AssetType.IMAGE) {
+          await this.assetService.optimizeAsset(assetId, optimizationOptions);
+        }
+      }
+
+      console.log(`Optimized ${assetIds.length} assets for ${this.currentDevice.name}`);
+      await this.loadAssets(); // Refresh assets list
+    } catch (error) {
+      console.error('Failed to optimize selected assets:', error);
+    }
+  }
+
+  /**
+   * Get optimization options based on device type
+   */
+  private getDeviceOptimizationOptions(device: DevicePreset): any {
+    const baseOptions = {
+      optimize: true,
+      generateThumbnails: true
+    };
+
+    switch (device.type) {
+      case DeviceType.MOBILE:
+        return {
+          ...baseOptions,
+          maxWidth: Math.min(device.width * device.pixelRatio, 800),
+          maxHeight: Math.min(device.height * device.pixelRatio, 600),
+          quality: 75,
+          formats: ['webp', 'jpg'],
+          progressive: true
+        };
+      
+      case DeviceType.TABLET:
+        return {
+          ...baseOptions,
+          maxWidth: Math.min(device.width * device.pixelRatio, 1200),
+          maxHeight: Math.min(device.height * device.pixelRatio, 900),
+          quality: 80,
+          formats: ['webp', 'jpg'],
+          progressive: true
+        };
+      
+      case DeviceType.DESKTOP:
+        return {
+          ...baseOptions,
+          maxWidth: device.width * device.pixelRatio,
+          maxHeight: device.height * device.pixelRatio,
+          quality: 85,
+          formats: ['webp', 'jpg', 'png'],
+          progressive: false
+        };
+      
+      default:
+        return baseOptions;
+    }
+  }
+
+  /**
+   * Get responsive image URL for current device
+   */
+  getResponsiveImageUrl(asset: Asset): string {
+    if (!this.currentDevice || asset.type !== AssetType.IMAGE) {
+      return asset.url;
+    }
+
+    // Check if optimized versions exist for current device
+    const optimizedVersion = asset.optimizedVersions?.find(version => 
+      version.deviceType === this.currentDevice!.type
+    );
+
+    return optimizedVersion?.url || asset.url;
+  }
+
+  /**
+   * Get responsive image srcset for current asset
+   */
+  getResponsiveImageSrcset(asset: Asset): string {
+    if (!this.currentDevice || asset.type !== AssetType.IMAGE || !asset.optimizedVersions) {
+      return '';
+    }
+
+    const srcsetEntries: string[] = [];
+
+    // Add original image
+    srcsetEntries.push(`${asset.url} 1x`);
+
+    // Add optimized versions
+    asset.optimizedVersions.forEach(version => {
+      if (version.deviceType === this.currentDevice!.type) {
+        const pixelRatio = this.getPixelRatioForDevice(version.deviceType);
+        srcsetEntries.push(`${version.url} ${pixelRatio}x`);
+      }
+    });
+
+    return srcsetEntries.join(', ');
+  }
+
+  /**
+   * Get pixel ratio for device type
+   */
+  private getPixelRatioForDevice(deviceType: DeviceType): number {
+    switch (deviceType) {
+      case DeviceType.MOBILE:
+        return 2; // Typical mobile pixel ratio
+      case DeviceType.TABLET:
+        return 2; // Typical tablet pixel ratio
+      case DeviceType.DESKTOP:
+        return 1; // Standard desktop pixel ratio
+      default:
+        return 1;
+    }
+  }
+
+  /**
+   * Check if asset has responsive optimizations
+   */
+  hasResponsiveOptimizations(asset: Asset): boolean {
+    return !!(asset.optimizedVersions && asset.optimizedVersions.length > 0);
+  }
+
+  /**
+   * Get responsive optimization status for asset
+   */
+  getResponsiveOptimizationStatus(asset: Asset): string {
+    if (!this.enableResponsiveOptimization) {
+      return 'disabled';
+    }
+
+    if (asset.type !== AssetType.IMAGE) {
+      return 'not-applicable';
+    }
+
+    if (!asset.optimizedVersions || asset.optimizedVersions.length === 0) {
+      return 'not-optimized';
+    }
+
+    const deviceTypes = [DeviceType.MOBILE, DeviceType.TABLET, DeviceType.DESKTOP];
+    const optimizedDeviceTypes = asset.optimizedVersions.map(v => v.deviceType);
+    const missingOptimizations = deviceTypes.filter(type => !optimizedDeviceTypes.includes(type));
+
+    if (missingOptimizations.length === 0) {
+      return 'fully-optimized';
+    } else if (missingOptimizations.length < deviceTypes.length) {
+      return 'partially-optimized';
+    } else {
+      return 'not-optimized';
+    }
+  }
+
+  /**
+   * Get responsive optimization status color
+   */
+  getResponsiveOptimizationStatusColor(status: string): string {
+    const colors = {
+      'fully-optimized': '#4CAF50',
+      'partially-optimized': '#FF9800',
+      'not-optimized': '#F44336',
+      'not-applicable': '#9E9E9E',
+      'disabled': '#9E9E9E'
+    };
+    return colors[status] || '#9E9E9E';
+  }
+
+  /**
+   * Get responsive optimization status icon
+   */
+  getResponsiveOptimizationStatusIcon(status: string): string {
+    const icons = {
+      'fully-optimized': '✅',
+      'partially-optimized': '⚠️',
+      'not-optimized': '❌',
+      'not-applicable': '➖',
+      'disabled': '🔒'
+    };
+    return icons[status] || '❓';
+  }
+
+  /**
+   * Upload files with responsive optimization
+   */
+  private async uploadFilesWithResponsiveOptimization(files: File[]): Promise<void> {
+    for (const file of files) {
+      try {
+        // Validate file
+        const validation = await this.assetService.validateAsset(file);
+        if (!validation.isValid) {
+          console.error(`Invalid file ${file.name}:`, validation.errors);
+          continue;
+        }
+
+        // Start upload with progress tracking
+        const uploadId = `upload_${Date.now()}_${Math.random()}`;
+        this.uploadProgress.set(uploadId, 0);
+
+        // Simulate upload progress
+        const progressInterval = setInterval(() => {
+          const currentProgress = this.uploadProgress.get(uploadId) || 0;
+          if (currentProgress < 90) {
+            this.uploadProgress.set(uploadId, currentProgress + 10);
+            this.cdr.detectChanges();
+          }
+        }, 200);
+
+        // Determine upload options based on responsive optimization setting
+        let uploadOptions: any = {
+          optimize: true,
+          generateThumbnails: true,
+          formats: ['webp'],
+          quality: 85
+        };
+
+        // Add responsive optimization if enabled
+        if (this.enableResponsiveOptimization && this.isImageFile(file)) {
+          uploadOptions = {
+            ...uploadOptions,
+            generateResponsiveVersions: true,
+            deviceTypes: [DeviceType.MOBILE, DeviceType.TABLET, DeviceType.DESKTOP]
+          };
+        }
+
+        // Upload asset
+        const asset = await this.assetService.uploadAsset(file, uploadOptions);
+
+        // Complete progress
+        clearInterval(progressInterval);
+        this.uploadProgress.set(uploadId, 100);
+        
+        // Remove progress after delay
+        setTimeout(() => {
+          this.uploadProgress.delete(uploadId);
+          this.cdr.detectChanges();
+        }, 1000);
+
+        console.log(`Successfully uploaded: ${asset.name}`);
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Check if file is an image
+   */
+  private isImageFile(file: File): boolean {
+    return file.type.startsWith('image/');
+  }
+
+  /**
+   * Override the original uploadFiles method to use responsive optimization
+   */
+  async uploadFiles(files: File[]): Promise<void> {
+    if (this.enableResponsiveOptimization) {
+      await this.uploadFilesWithResponsiveOptimization(files);
+    } else {
+      // Use original upload logic
+      await this.uploadFilesOriginal(files);
+    }
+  }
+
+  /**
+   * Original upload files method (renamed for fallback)
+   */
+  private async uploadFilesOriginal(files: File[]): Promise<void> {
+    for (const file of files) {
+      try {
+        // Validate file
+        const validation = await this.assetService.validateAsset(file);
+        if (!validation.isValid) {
+          console.error(`Invalid file ${file.name}:`, validation.errors);
+          continue;
+        }
+
+        // Start upload with progress tracking
+        const uploadId = `upload_${Date.now()}_${Math.random()}`;
+        this.uploadProgress.set(uploadId, 0);
+
+        // Simulate upload progress
+        const progressInterval = setInterval(() => {
+          const currentProgress = this.uploadProgress.get(uploadId) || 0;
+          if (currentProgress < 90) {
+            this.uploadProgress.set(uploadId, currentProgress + 10);
+            this.cdr.detectChanges();
+          }
+        }, 200);
+
+        // Upload asset
+        const asset = await this.assetService.uploadAsset(file, {
+          optimize: true,
+          generateThumbnails: true,
+          formats: ['webp'],
+          quality: 85
+        });
+
+        // Complete progress
+        clearInterval(progressInterval);
+        this.uploadProgress.set(uploadId, 100);
+        
+        // Remove progress after delay
+        setTimeout(() => {
+          this.uploadProgress.delete(uploadId);
+          this.cdr.detectChanges();
+        }, 1000);
+
+        console.log(`Successfully uploaded: ${asset.name}`);
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Get current device display name
+   */
+  getCurrentDeviceName(): string {
+    return this.currentDevice?.name || 'No device selected';
+  }
+
+  /**
+   * Check if responsive optimization is available for asset
+   */
+  canOptimizeForDevice(asset: Asset): boolean {
+    return this.enableResponsiveOptimization && 
+           !!this.currentDevice && 
+           asset.type === AssetType.IMAGE;
   }
 }

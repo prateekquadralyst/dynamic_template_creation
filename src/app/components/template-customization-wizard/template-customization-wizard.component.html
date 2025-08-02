@@ -1,7 +1,6 @@
 <!-- Wizard Overlay -->
 <div class="wizard-overlay" (click)="cancelWizard()">
   <div class="wizard-container" (click)="$event.stopPropagation()">
-    
     <!-- Wizard Header -->
     <div class="wizard-header">
       <div class="header-content">
@@ -9,9 +8,15 @@
           <i class="bi bi-magic"></i>
           Template Setup Wizard
         </h2>
-        <p class="wizard-subtitle">Let's customize your {{ template.name }} template</p>
+        <p class="wizard-subtitle">
+          Let's customize your {{ template.name }} template
+        </p>
       </div>
-      <button class="btn btn-outline-secondary" (click)="cancelWizard()" title="Cancel">
+      <button
+        class="btn btn-outline-secondary"
+        (click)="cancelWizard()"
+        title="Cancel"
+      >
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
@@ -19,13 +24,13 @@
     <!-- Progress Steps -->
     <div class="wizard-progress">
       <div class="progress-steps">
-        <div 
+        <div
           *ngFor="let step of steps; let i = index"
           class="progress-step"
-          [ngClass]="{ 
-            'active': i === currentStep, 
-            'completed': step.isCompleted,
-            'upcoming': i > currentStep 
+          [ngClass]="{
+            active: i === currentStep,
+            completed: step.isCompleted,
+            upcoming: i > currentStep
           }"
         >
           <div class="step-indicator">
@@ -42,7 +47,6 @@
 
     <!-- Wizard Content -->
     <div class="wizard-content">
-      
       <!-- Step 1: Project Setup -->
       <div *ngIf="currentStep === 0" class="wizard-step">
         <div class="step-header">
@@ -51,15 +55,18 @@
         </div>
 
         <div class="project-options">
-          <div class="option-card" [ngClass]="{ active: projectSetup.createNew }">
+          <div
+            class="option-card"
+            [ngClass]="{ active: projectSetup.createNew }"
+          >
             <label class="option-label">
-              <input 
-                type="radio" 
-                name="projectOption" 
-                [value]="true" 
+              <input
+                type="radio"
+                name="projectOption"
+                [value]="true"
                 [(ngModel)]="projectSetup.createNew"
                 class="option-radio"
-              >
+              />
               <div class="option-content">
                 <div class="option-icon">
                   <i class="bi bi-plus-circle"></i>
@@ -70,15 +77,18 @@
             </label>
           </div>
 
-          <div class="option-card" [ngClass]="{ active: !projectSetup.createNew }">
+          <div
+            class="option-card"
+            [ngClass]="{ active: !projectSetup.createNew }"
+          >
             <label class="option-label">
-              <input 
-                type="radio" 
-                name="projectOption" 
-                [value]="false" 
+              <input
+                type="radio"
+                name="projectOption"
+                [value]="false"
                 [(ngModel)]="projectSetup.createNew"
                 class="option-radio"
-              >
+              />
               <div class="option-content">
                 <div class="option-icon">
                   <i class="bi bi-folder"></i>
@@ -94,18 +104,18 @@
         <div *ngIf="projectSetup.createNew" class="project-form">
           <div class="form-group">
             <label for="projectName">Project Name</label>
-            <input 
+            <input
               id="projectName"
-              type="text" 
+              type="text"
               class="form-control"
               [(ngModel)]="projectSetup.name"
               placeholder="Enter project name"
               required
-            >
+            />
           </div>
           <div class="form-group">
             <label for="projectDescription">Description (Optional)</label>
-            <textarea 
+            <textarea
               id="projectDescription"
               class="form-control"
               [(ngModel)]="projectSetup.description"
@@ -119,14 +129,17 @@
         <div *ngIf="!projectSetup.createNew" class="project-selection">
           <div class="form-group">
             <label for="existingProject">Select Project</label>
-            <select 
+            <select
               id="existingProject"
               class="form-control"
               [(ngModel)]="projectSetup.selectedProjectId"
               required
             >
               <option value="">Choose a project...</option>
-              <option *ngFor="let project of availableProjects" [value]="project.id">
+              <option
+                *ngFor="let project of availableProjects"
+                [value]="project.id"
+              >
                 {{ project.name }}
               </option>
             </select>
@@ -142,30 +155,29 @@
         </div>
 
         <div class="customization-sections">
-          
           <!-- Content Customization -->
           <div class="customization-section">
             <h4>Content</h4>
             <div class="form-row">
               <div class="form-group" *ngIf="isHeroTemplate()">
                 <label for="headerText">Main Heading</label>
-                <input 
+                <input
                   id="headerText"
-                  type="text" 
+                  type="text"
                   class="form-control"
                   [(ngModel)]="customization.headerText"
                   placeholder="Enter your main heading"
-                >
+                />
               </div>
               <div class="form-group" *ngIf="isHeroTemplate()">
                 <label for="heroSubheading">Subheading</label>
-                <input 
+                <input
                   id="heroSubheading"
-                  type="text" 
+                  type="text"
                   class="form-control"
                   [(ngModel)]="customization.heroSubheading"
                   placeholder="Enter your subheading"
-                >
+                />
               </div>
             </div>
             <div class="form-group" *ngIf="isHeroTemplate()">
@@ -183,20 +195,28 @@
           <!-- Style Customization -->
           <div class="customization-section">
             <h4>Style</h4>
-            
+
             <!-- Color Scheme -->
             <div class="style-group">
               <label>Color Scheme</label>
               <div class="color-schemes">
-                <div 
+                <div
                   *ngFor="let scheme of colorSchemes"
                   class="color-scheme-card"
-                  [ngClass]="{ active: customization.colorScheme === scheme.id }"
+                  [ngClass]="{
+                    active: customization.colorScheme === scheme.id
+                  }"
                   (click)="customization.colorScheme = scheme.id"
                 >
                   <div class="color-preview">
-                    <div class="color-primary" [style.background-color]="scheme.primary"></div>
-                    <div class="color-secondary" [style.background-color]="scheme.secondary"></div>
+                    <div
+                      class="color-primary"
+                      [style.background-color]="scheme.primary"
+                    ></div>
+                    <div
+                      class="color-secondary"
+                      [style.background-color]="scheme.secondary"
+                    ></div>
                   </div>
                   <span class="scheme-name">{{ scheme.name }}</span>
                 </div>
@@ -207,7 +227,7 @@
             <div class="style-group">
               <label>Font Style</label>
               <div class="font-styles">
-                <div 
+                <div
                   *ngFor="let font of fontStyles"
                   class="font-style-card"
                   [ngClass]="{ active: customization.fontStyle === font.id }"
@@ -232,13 +252,14 @@
         </div>
 
         <div class="review-sections">
-          
           <!-- Project Review -->
           <div class="review-section">
             <h4>Project</h4>
             <div class="review-item">
               <span class="review-label">Type:</span>
-              <span class="review-value">{{ projectSetup.createNew ? 'New Project' : 'Existing Project' }}</span>
+              <span class="review-value">{{
+                projectSetup.createNew ? "New Project" : "Existing Project"
+              }}</span>
             </div>
             <div class="review-item">
               <span class="review-label">Name:</span>
@@ -254,10 +275,21 @@
           <div class="review-section">
             <h4>Template</h4>
             <div class="template-preview-card">
-              <img [src]="template.previewImage" [alt]="template.name" class="template-preview-img">
+              <img
+                [src]="template.previewImage"
+                [alt]="template.name"
+                class="template-preview-img"
+                (error)="onImageError($event)"
+                loading="lazy"
+              />
               <div class="template-info">
                 <h5>{{ template.name }}</h5>
                 <p>{{ template.description }}</p>
+                <div class="template-meta">
+                  <span class="template-type">{{
+                    mapSectionTypeToString(template.type) | titlecase
+                  }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -271,11 +303,15 @@
             </div>
             <div class="review-item">
               <span class="review-label">Color Scheme:</span>
-              <span class="review-value">{{ getSelectedColorScheme()?.name }}</span>
+              <span class="review-value">{{
+                getSelectedColorScheme()?.name
+              }}</span>
             </div>
             <div class="review-item">
               <span class="review-label">Font Style:</span>
-              <span class="review-value">{{ getSelectedFontStyle()?.name }}</span>
+              <span class="review-value">{{
+                getSelectedFontStyle()?.name
+              }}</span>
             </div>
           </div>
         </div>
@@ -285,7 +321,7 @@
     <!-- Wizard Footer -->
     <div class="wizard-footer">
       <div class="footer-actions">
-        <button 
+        <button
           *ngIf="currentStep > 0"
           class="btn btn-outline-secondary"
           (click)="previousStep()"
@@ -294,18 +330,18 @@
           <i class="bi bi-arrow-left"></i>
           Previous
         </button>
-        
+
         <div class="spacer"></div>
-        
-        <button 
+
+        <button
           class="btn btn-outline-secondary"
           (click)="cancelWizard()"
           [disabled]="isProcessing"
         >
           Cancel
         </button>
-        
-        <button 
+
+        <button
           *ngIf="currentStep < steps.length - 1"
           class="btn btn-primary"
           (click)="nextStep()"
@@ -314,18 +350,22 @@
           Next
           <i class="bi bi-arrow-right"></i>
         </button>
-        
-        <button 
+
+        <button
           *ngIf="currentStep === steps.length - 1"
           class="btn btn-success"
           (click)="completeWizard()"
           [disabled]="!isCurrentStepValid() || isProcessing"
         >
-          <span *ngIf="isProcessing" class="spinner-border spinner-border-sm me-2" role="status">
+          <span
+            *ngIf="isProcessing"
+            class="spinner-border spinner-border-sm me-2"
+            role="status"
+          >
             <span class="visually-hidden">Loading...</span>
           </span>
           <i *ngIf="!isProcessing" class="bi bi-rocket"></i>
-          {{ isProcessing ? 'Setting up...' : 'Launch Editor' }}
+          {{ isProcessing ? "Setting up..." : "Launch Editor" }}
         </button>
       </div>
     </div>
